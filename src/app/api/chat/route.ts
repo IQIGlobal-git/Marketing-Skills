@@ -1,10 +1,9 @@
 import Groq from "groq-sdk";
 import { fetchSkillContent } from "@/lib/github";
 
-const groq = new Groq();
-
 export async function POST(request: Request) {
   try {
+    const groq = new Groq();
     const { messages, skillSlugs } = await request.json();
 
     if (!skillSlugs || skillSlugs.length === 0) {
