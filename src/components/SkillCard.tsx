@@ -24,19 +24,19 @@ export default function SkillCard({ skill }: SkillCardProps) {
       onClick={toggle}
       className={`group relative flex flex-col gap-2 rounded-xl border p-4 text-left transition-all ${
         selected
-          ? "border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-950/30"
-          : "border-zinc-200 bg-white hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
+          ? "border-[var(--accent)] bg-[var(--accent-subtle)]"
+          : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--muted)]"
       }`}
     >
       <div className="flex items-start justify-between gap-2">
-        <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">
+        <h3 className="text-sm font-semibold text-[var(--foreground)]">
           {skill.name}
         </h3>
         <div
           className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors ${
             selected
-              ? "border-blue-500 bg-blue-500 text-white"
-              : "border-zinc-300 dark:border-zinc-600"
+              ? "border-[var(--accent)] bg-[var(--accent)] text-white"
+              : "border-[var(--muted)]"
           }`}
         >
           {selected && (
@@ -46,10 +46,10 @@ export default function SkillCard({ skill }: SkillCardProps) {
           )}
         </div>
       </div>
-      <span className="inline-block w-fit rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+      <span className="inline-block w-fit rounded-full bg-[var(--accent-subtle)] px-2 py-0.5 text-[10px] font-medium text-[var(--accent-text)]">
         {skill.category}
       </span>
-      <p className="line-clamp-2 text-xs text-zinc-500 dark:text-zinc-400">
+      <p className="line-clamp-2 text-xs text-[var(--muted)]">
         {skill.description}
       </p>
     </button>

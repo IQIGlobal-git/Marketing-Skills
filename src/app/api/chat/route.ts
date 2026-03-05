@@ -5,7 +5,16 @@ export const maxDuration = 60;
 
 export async function POST(request: Request) {
   try {
-    const groq = new Groq();
+    const apiKey = request.headers.get("x-groq-api-key") || process.env.GROQ_API_KEY;
+
+    if (!apiKey) {
+      return new Response(
+        JSON.stringify({ error: "No API key provided. Please enter your Groq API key in settings." }),
+        { status: 401, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    const groq = new Groq({ apiKey });
     const { messages, skillSlugs } = await request.json();
 
     if (!skillSlugs || skillSlugs.length === 0) {

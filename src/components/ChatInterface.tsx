@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useAgent } from "@/lib/agent-context";
 import MessageBubble from "./MessageBubble";
+import ApiKeyInput from "./ApiKeyInput";
 
 export default function ChatInterface() {
   const {
@@ -11,9 +12,12 @@ export default function ChatInterface() {
     addMessage,
     updateLastMessage,
     clearMessages,
+    agentName,
+    apiKey,
   } = useAgent();
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [showKeyInput, setShowKeyInput] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -36,9 +40,16 @@ export default function ChatInterface() {
     setIsStreaming(true);
 
     try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (apiKey) {
+        headers["x-groq-api-key"] = apiKey;
+      }
+
       const res = await fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           messages: allMessages,
           skillSlugs: selectedSkills.map((s) => s.slug),
@@ -47,9 +58,13 @@ export default function ChatInterface() {
 
       if (!res.ok) {
         const err = await res.json();
+        if (res.status === 401) {
+          setShowKeyInput(true);
+        }
         throw new Error(err.error || "Chat request failed");
       }
 
+      setShowKeyInput(false);
       const reader = res.body!.getReader();
       const decoder = new TextDecoder();
       let accumulated = "";
@@ -84,15 +99,17 @@ export default function ChatInterface() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col">
-      {/* Skills bar */}
-      <div className="flex items-center gap-2 border-b border-zinc-200 px-4 py-2 dark:border-zinc-800">
-        <span className="text-xs text-zinc-500">Skills:</span>
+    <div className="flex h-[calc(100vh-3.5rem)] flex-col">
+      {/* Agent header bar */}
+      <div className="flex items-center gap-3 border-b border-[var(--border)] px-4 py-2">
+        <span className="text-sm font-medium text-[var(--foreground)]">
+          {agentName || "Custom Agent"}
+        </span>
         <div className="flex flex-wrap gap-1">
           {selectedSkills.map((s) => (
             <span
               key={s.slug}
-              className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+              className="rounded-full bg-[var(--accent-subtle)] px-2 py-0.5 text-[10px] font-medium text-[var(--accent-text)]"
             >
               {s.name}
             </span>
@@ -100,20 +117,27 @@ export default function ChatInterface() {
         </div>
         <button
           onClick={clearMessages}
-          className="ml-auto text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+          className="ml-auto text-xs text-[var(--muted)] hover:text-[var(--foreground)]"
         >
           Clear chat
         </button>
       </div>
 
+      {/* API key banner */}
+      {showKeyInput && (
+        <div className="border-b border-[var(--border)] p-4">
+          <ApiKeyInput compact />
+        </div>
+      )}
+
       {/* Messages */}
       <div className="flex-1 space-y-4 overflow-y-auto p-4">
         {messages.length === 0 && (
           <div className="flex h-full flex-col items-center justify-center text-center">
-            <h2 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-white">
+            <h2 className="mb-2 text-lg font-semibold text-[var(--foreground)]">
               Start a conversation
             </h2>
-            <p className="mb-6 max-w-md text-sm text-zinc-500">
+            <p className="mb-6 max-w-md text-sm text-[var(--muted)]">
               Your agent has {selectedSkills.length} skill
               {selectedSkills.length !== 1 ? "s" : ""} loaded. Ask it anything
               about marketing.
@@ -130,7 +154,7 @@ export default function ChatInterface() {
                     setInput(suggestion);
                     textareaRef.current?.focus();
                   }}
-                  className="rounded-lg border border-zinc-200 px-3 py-2 text-xs text-zinc-600 transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-900"
+                  className="rounded-lg border border-[var(--border)] px-3 py-2 text-xs text-[var(--muted)] transition-colors hover:bg-[var(--surface)]"
                 >
                   {suggestion}
                 </button>
@@ -145,7 +169,7 @@ export default function ChatInterface() {
       </div>
 
       {/* Input */}
-      <div className="border-t border-zinc-200 p-4 dark:border-zinc-800">
+      <div className="border-t border-[var(--border)] p-4">
         <div className="mx-auto flex max-w-3xl items-end gap-2">
           <textarea
             ref={textareaRef}
@@ -154,12 +178,12 @@ export default function ChatInterface() {
             onKeyDown={handleKeyDown}
             placeholder="Type your message..."
             rows={1}
-            className="flex-1 resize-none rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white dark:focus:border-blue-400"
+            className="flex-1 resize-none rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
           />
           <button
             onClick={sendMessage}
             disabled={isStreaming || !input.trim()}
-            className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+            className="rounded-xl bg-[var(--accent)] px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-[var(--accent-hover)] disabled:opacity-50"
           >
             {isStreaming ? "..." : "Send"}
           </button>

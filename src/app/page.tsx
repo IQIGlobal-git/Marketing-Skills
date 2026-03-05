@@ -16,16 +16,16 @@ export default function Home() {
     <main className="mx-auto max-w-6xl px-4 py-16">
       {/* Hero */}
       <section className="mb-20 text-center">
-        <h1 className="mb-4 text-4xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-5xl">
+        <h1 className="mb-4 text-4xl font-bold tracking-tight text-[var(--foreground)] sm:text-5xl">
           AI-Powered Marketing Expertise
         </h1>
-        <p className="mx-auto mb-8 max-w-2xl text-lg text-zinc-600 dark:text-zinc-400">
+        <p className="mx-auto mb-8 max-w-2xl text-lg text-[var(--muted)]">
           Browse 32+ marketing skills, build a custom AI agent with the
-          expertise you need, and chat with it instantly. Powered by Claude.
+          expertise you need, and chat with it instantly. Powered by Groq.
         </p>
         <Link
           href="/skills"
-          className="inline-block rounded-lg bg-blue-600 px-8 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+          className="inline-block rounded-lg bg-[var(--accent)] px-8 py-3 text-sm font-medium text-white transition-colors hover:bg-[var(--accent-hover)]"
         >
           Browse Skills
         </Link>
@@ -33,7 +33,7 @@ export default function Home() {
 
       {/* How it works */}
       <section className="mb-20">
-        <h2 className="mb-8 text-center text-2xl font-bold text-zinc-900 dark:text-white">
+        <h2 className="mb-8 text-center text-2xl font-bold text-[var(--foreground)]">
           How It Works
         </h2>
         <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
@@ -43,13 +43,13 @@ export default function Home() {
             { step: "3", title: "Start Chatting", desc: "Chat with your custom marketing expert" },
           ].map((item) => (
             <div key={item.step} className="text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-lg font-bold text-blue-600 dark:bg-blue-900/40 dark:text-blue-300">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--accent-subtle)] text-lg font-bold text-[var(--accent)]">
                 {item.step}
               </div>
-              <h3 className="mb-2 font-semibold text-zinc-900 dark:text-white">
+              <h3 className="mb-2 font-semibold text-[var(--foreground)]">
                 {item.title}
               </h3>
-              <p className="text-sm text-zinc-500">{item.desc}</p>
+              <p className="text-sm text-[var(--muted)]">{item.desc}</p>
             </div>
           ))}
         </div>
@@ -57,7 +57,7 @@ export default function Home() {
 
       {/* Categories grid */}
       <section>
-        <h2 className="mb-8 text-center text-2xl font-bold text-zinc-900 dark:text-white">
+        <h2 className="mb-8 text-center text-2xl font-bold text-[var(--foreground)]">
           Skill Categories
         </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -65,13 +65,13 @@ export default function Home() {
             <Link
               key={cat.name}
               href="/skills"
-              className="rounded-xl border border-zinc-200 p-5 transition-colors hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:border-zinc-700 dark:hover:bg-zinc-900"
+              className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 transition-colors hover:border-[var(--muted)]"
             >
-              <h3 className="mb-1 text-sm font-semibold text-zinc-900 dark:text-white">
+              <h3 className="mb-1 text-sm font-semibold text-[var(--foreground)]">
                 {cat.name}
               </h3>
-              <p className="mb-2 text-xs text-zinc-500">{cat.desc}</p>
-              <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
+              <p className="mb-2 text-xs text-[var(--muted)]">{cat.desc}</p>
+              <span className="text-xs font-medium text-[var(--accent)]">
                 {cat.count} skills
               </span>
             </Link>

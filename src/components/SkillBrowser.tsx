@@ -47,7 +47,7 @@ export default function SkillBrowser() {
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
-        <div className="text-zinc-500">Loading skills from GitHub...</div>
+        <div className="text-[var(--muted)]">Loading skills from GitHub...</div>
       </div>
     );
   }
@@ -58,7 +58,7 @@ export default function SkillBrowser() {
         <p className="text-red-500">Error: {error}</p>
         <button
           onClick={() => window.location.reload()}
-          className="rounded-lg bg-zinc-900 px-4 py-2 text-sm text-white dark:bg-white dark:text-zinc-900"
+          className="rounded-lg bg-[var(--foreground)] px-4 py-2 text-sm text-[var(--background)]"
         >
           Retry
         </button>
@@ -75,15 +75,15 @@ export default function SkillBrowser() {
           placeholder="Search skills..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-blue-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white dark:focus:border-blue-400"
+          className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
         />
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setActiveCategory(null)}
             className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
               !activeCategory
-                ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
-                : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400"
+                ? "bg-[var(--accent)] text-white"
+                : "bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--foreground)]"
             }`}
           >
             All
@@ -98,8 +98,8 @@ export default function SkillBrowser() {
               }
               className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
                 activeCategory === cat.name
-                  ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
-                  : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400"
+                  ? "bg-[var(--accent)] text-white"
+                  : "bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--foreground)]"
               }`}
             >
               {cat.name}
@@ -111,7 +111,7 @@ export default function SkillBrowser() {
       {/* Skills grid */}
       {filteredCategories.map((cat) => (
         <div key={cat.name}>
-          <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-white">
+          <h2 className="mb-3 text-lg font-semibold text-[var(--foreground)]">
             {cat.name}
           </h2>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -124,14 +124,14 @@ export default function SkillBrowser() {
 
       {/* Floating action bar */}
       {selectedSkills.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 border-t border-zinc-200 bg-white/90 p-4 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90">
+        <div className="fixed bottom-0 left-0 right-0 border-t border-[var(--border)] bg-[var(--surface)]/90 p-4 backdrop-blur">
           <div className="mx-auto flex max-w-6xl items-center justify-between">
-            <span className="text-sm text-zinc-600 dark:text-zinc-400">
+            <span className="text-sm text-[var(--muted)]">
               {selectedSkills.length} skill{selectedSkills.length > 1 ? "s" : ""} selected
             </span>
             <button
               onClick={() => router.push("/agent")}
-              className="rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+              className="rounded-lg bg-[var(--accent)] px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[var(--accent-hover)]"
             >
               Build Agent
             </button>

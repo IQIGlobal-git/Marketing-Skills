@@ -1,20 +1,82 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Theme definitions */
+:root,
+[data-theme="midnight"] {
+  color-scheme: dark;
+  --background: #0f172a;
+  --foreground: #e2e8f0;
+  --surface: #1e293b;
+  --border: #334155;
+  --muted: #94a3b8;
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --accent-subtle: rgba(59, 130, 246, 0.15);
+  --accent-text: #93bbfd;
+}
+
+[data-theme="snow"] {
+  color-scheme: light;
+  --background: #fafafa;
+  --foreground: #18181b;
+  --surface: #ffffff;
+  --border: #e4e4e7;
+  --muted: #71717a;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-subtle: rgba(37, 99, 235, 0.1);
+  --accent-text: #2563eb;
+}
+
+[data-theme="forest"] {
+  color-scheme: dark;
+  --background: #0c1a0e;
+  --foreground: #d1e7d4;
+  --surface: #14291a;
+  --border: #1e3a24;
+  --muted: #7daa85;
+  --accent: #22c55e;
+  --accent-hover: #16a34a;
+  --accent-subtle: rgba(34, 197, 94, 0.15);
+  --accent-text: #6ee7a0;
+}
+
+[data-theme="sunset"] {
+  color-scheme: dark;
+  --background: #1a0f0a;
+  --foreground: #fde8d0;
+  --surface: #2a1a10;
+  --border: #3d2415;
+  --muted: #c4956a;
+  --accent: #f97316;
+  --accent-hover: #ea580c;
+  --accent-subtle: rgba(249, 115, 22, 0.15);
+  --accent-text: #fdba74;
+}
+
+[data-theme="ocean"] {
+  color-scheme: dark;
+  --background: #0a1628;
+  --foreground: #c7d9f0;
+  --surface: #0f2340;
+  --border: #1a3358;
+  --muted: #7ba3cc;
+  --accent: #0ea5e9;
+  --accent-hover: #0284c7;
+  --accent-subtle: rgba(14, 165, 233, 0.15);
+  --accent-text: #67d4fc;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-surface: var(--surface);
+  --color-border-theme: var(--border);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-subtle: var(--accent-subtle);
+  --color-accent-text: var(--accent-text);
 }
 
 body {

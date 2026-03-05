@@ -15,8 +15,8 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
       <div
         className={`max-w-[80%] rounded-2xl px-4 py-3 ${
           isUser
-            ? "bg-blue-600 text-white"
-            : "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
+            ? "bg-[var(--accent)] text-white"
+            : "bg-[var(--surface)] text-[var(--foreground)]"
         }`}
       >
         {isUser ? (
