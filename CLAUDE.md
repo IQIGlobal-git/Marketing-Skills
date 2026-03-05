@@ -1,12 +1,12 @@
 # Marketing Skills Agent Builder
 
 ## Project Overview
-Next.js web app that fetches marketing skills from `coreyhaines31/marketingskills` GitHub repo, lets users select skills to build custom AI agents, and chat with those agents via the Claude API.
+Next.js web app that fetches marketing skills from `coreyhaines31/marketingskills` GitHub repo, lets users select skills to build custom AI agents, and chat with those agents via the Groq API (Llama 3.3 70B).
 
 ## Tech Stack
 - **Framework**: Next.js 14+ (App Router, TypeScript)
 - **Styling**: Tailwind CSS
-- **AI**: Anthropic Claude API via `@anthropic-ai/sdk`
+- **AI**: Groq API via `groq-sdk` (Llama 3.3 70B)
 - **Skills Source**: GitHub API → `coreyhaines31/marketingskills`
 
 ## Architecture
@@ -29,7 +29,7 @@ Next.js web app that fetches marketing skills from `coreyhaines31/marketingskill
 - `npm run lint` - Run ESLint
 
 ## Environment Variables
-- `ANTHROPIC_API_KEY` - Required. Set in `.env.local` (not committed).
+- `GROQ_API_KEY` - Required. Set in `.env.local` (not committed). Free at console.groq.com.
 
 ## Category Mapping
 Skills from the GitHub repo don't have a category field in their YAML frontmatter. The category mapping is hardcoded in `src/lib/categories.ts` based on the source repo's README. If new skills are added to the repo, update this mapping.

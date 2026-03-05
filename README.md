@@ -1,6 +1,6 @@
 # Marketing Skills Agent Builder
 
-A web application that lets you browse 32+ marketing skills, build custom AI agents with selected expertise, and chat with them in real-time. Powered by Claude and skills from [coreyhaines31/marketingskills](https://github.com/coreyhaines31/marketingskills).
+A web application that lets you browse 32+ marketing skills, build custom AI agents with selected expertise, and chat with them in real-time. Powered by Groq (Llama 3.3 70B) and skills from [coreyhaines31/marketingskills](https://github.com/coreyhaines31/marketingskills).
 
 ## Features
 
@@ -23,7 +23,7 @@ The web app fetches these skills dynamically from GitHub - no manual installatio
 ### Prerequisites
 
 - Node.js 18+
-- An [Anthropic API key](https://console.anthropic.com/)
+- A [Groq API key](https://console.groq.com/) (free tier available)
 
 ### Local Development (localhost)
 
@@ -42,9 +42,9 @@ The web app fetches these skills dynamically from GitHub - no manual installatio
    ```bash
    cp .env.example .env.local
    ```
-   Edit `.env.local` and add your Anthropic API key:
+   Edit `.env.local` and add your Groq API key:
    ```
-   ANTHROPIC_API_KEY=sk-ant-your-key-here
+   GROQ_API_KEY=gsk_your-key-here
    ```
 
 4. **Start the development server:**
@@ -70,7 +70,7 @@ The easiest way to deploy is via Vercel:
 
 1. Push your code to GitHub
 2. Go to [vercel.com/new](https://vercel.com/new) and import your repository
-3. Add the `ANTHROPIC_API_KEY` environment variable in the Vercel dashboard
+3. Add the `GROQ_API_KEY` environment variable in the Vercel dashboard
 4. Click Deploy
 
 Alternatively, deploy via the Vercel CLI:
@@ -83,7 +83,7 @@ vercel
 
 - **Framework**: [Next.js](https://nextjs.org/) (App Router, TypeScript)
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/)
-- **AI**: [Claude API](https://docs.anthropic.com/) via `@anthropic-ai/sdk`
+- **AI**: [Groq](https://groq.com/) via `groq-sdk` (Llama 3.3 70B, free tier)
 - **Skills**: Fetched from [coreyhaines31/marketingskills](https://github.com/coreyhaines31/marketingskills)
 
 ## Project Structure
@@ -98,7 +98,7 @@ src/
 │   │   └── chat/page.tsx     # Chat interface
 │   └── api/
 │       ├── skills/route.ts   # GET: fetch skills from GitHub
-│       └── chat/route.ts     # POST: stream Claude responses
+│       └── chat/route.ts     # POST: stream Groq/Llama responses
 ├── components/
 │   ├── Header.tsx            # Navigation header
 │   ├── SkillBrowser.tsx      # Skills grid with filters

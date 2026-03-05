@@ -1,7 +1,7 @@
-import Anthropic from "@anthropic-ai/sdk";
+import Groq from "groq-sdk";
 import { fetchSkillContent } from "@/lib/github";
 
-const anthropic = new Anthropic();
+const groq = new Groq();
 
 export async function POST(request: Request) {
   try {
@@ -31,26 +31,27 @@ export async function POST(request: Request) {
       ),
     ].join("\n\n");
 
-    const stream = anthropic.messages.stream({
-      model: "claude-sonnet-4-20250514",
+    const stream = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
       max_tokens: 4096,
-      system: systemPrompt,
-      messages: messages.map((m: { role: string; content: string }) => ({
-        role: m.role as "user" | "assistant",
-        content: m.content,
-      })),
+      stream: true,
+      messages: [
+        { role: "system", content: systemPrompt },
+        ...messages.map((m: { role: string; content: string }) => ({
+          role: m.role as "user" | "assistant",
+          content: m.content,
+        })),
+      ],
     });
 
     const encoder = new TextEncoder();
     const readable = new ReadableStream({
       async start(controller) {
         try {
-          for await (const event of stream) {
-            if (
-              event.type === "content_block_delta" &&
-              event.delta.type === "text_delta"
-            ) {
-              controller.enqueue(encoder.encode(event.delta.text));
+          for await (const chunk of stream) {
+            const text = chunk.choices[0]?.delta?.content;
+            if (text) {
+              controller.enqueue(encoder.encode(text));
             }
           }
           controller.close();
