@@ -41,12 +41,18 @@ export default function Header() {
             href="/agents"
             className="relative text-sm text-[var(--muted)] transition-colors hover:text-[var(--foreground)]"
           >
-            Agents
+            Saved Agents
             {savedAgents.length > 0 && (
-              <span className="absolute -right-4 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--accent)] text-[9px] font-bold text-white">
+              <span className="absolute -right-5 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--accent)] text-[9px] font-bold text-white">
                 {savedAgents.length}
               </span>
             )}
+          </Link>
+          <Link
+            href="/settings"
+            className="text-sm text-[var(--muted)] transition-colors hover:text-[var(--foreground)]"
+          >
+            Settings
           </Link>
           <ThemePicker />
         </nav>
