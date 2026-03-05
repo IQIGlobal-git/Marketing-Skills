@@ -1,5 +1,7 @@
 import Groq from "groq-sdk";
-import { fetchSkillContent } from "@/lib/github";
+
+export const runtime = "nodejs";
+export const maxDuration = 60;
 
 export async function POST(request: Request) {
   try {
@@ -13,10 +15,16 @@ export async function POST(request: Request) {
       );
     }
 
-    // Fetch all selected skill contents
+    // Fetch all selected skill contents directly (avoid Next.js cache issues in route handlers)
     const skillContents = await Promise.all(
       skillSlugs.map(async (slug: string) => {
-        const content = await fetchSkillContent(slug);
+        const rawUrl = `https://raw.githubusercontent.com/coreyhaines31/marketingskills/main/skills/${slug}/SKILL.md`;
+        const res = await fetch(rawUrl);
+        if (!res.ok) {
+          console.error(`Failed to fetch skill ${slug}: ${res.status}`);
+          return { slug, content: "" };
+        }
+        const content = await res.text();
         return { slug, content };
       })
     );
@@ -24,10 +32,12 @@ export async function POST(request: Request) {
     // Build system prompt from skills
     const systemPrompt = [
       "You are a marketing expert assistant with specialized skills. Use the following skill instructions to guide your responses:\n",
-      ...skillContents.map(
-        ({ slug, content }) =>
-          `=== SKILL: ${slug} ===\n${content}\n=== END SKILL ===`
-      ),
+      ...skillContents
+        .filter(({ content }) => content)
+        .map(
+          ({ slug, content }) =>
+            `=== SKILL: ${slug} ===\n${content}\n=== END SKILL ===`
+        ),
     ].join("\n\n");
 
     const stream = await groq.chat.completions.create({
@@ -55,6 +65,7 @@ export async function POST(request: Request) {
           }
           controller.close();
         } catch (error) {
+          console.error("Stream error:", error);
           controller.error(error);
         }
       },
@@ -64,9 +75,11 @@ export async function POST(request: Request) {
       headers: { "Content-Type": "text/plain; charset=utf-8" },
     });
   } catch (error) {
-    console.error("Chat API error:", error);
+    const message =
+      error instanceof Error ? error.message : "Unknown error occurred";
+    console.error("Chat API error:", message, error);
     return new Response(
-      JSON.stringify({ error: "Failed to process chat request" }),
+      JSON.stringify({ error: message }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
