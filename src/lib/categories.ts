@@ -1,0 +1,51 @@
+export const SKILL_CATEGORIES: Record<string, string> = {
+  "page-cro": "Conversion Optimization",
+  "signup-flow-cro": "Conversion Optimization",
+  "onboarding-cro": "Conversion Optimization",
+  "form-cro": "Conversion Optimization",
+  "popup-cro": "Conversion Optimization",
+  "paywall-upgrade-cro": "Conversion Optimization",
+  "copywriting": "Content & Copy",
+  "copy-editing": "Content & Copy",
+  "cold-email": "Content & Copy",
+  "email-sequence": "Content & Copy",
+  "social-content": "Content & Copy",
+  "content-strategy": "Content & Copy",
+  "seo-audit": "SEO & Discovery",
+  "ai-seo": "SEO & Discovery",
+  "programmatic-seo": "SEO & Discovery",
+  "site-architecture": "SEO & Discovery",
+  "competitor-alternatives": "SEO & Discovery",
+  "schema-markup": "SEO & Discovery",
+  "paid-ads": "Paid & Distribution",
+  "ad-creative": "Paid & Distribution",
+  "analytics-tracking": "Measurement & Testing",
+  "ab-test-setup": "Measurement & Testing",
+  "churn-prevention": "Retention",
+  "free-tool-strategy": "Growth Engineering",
+  "referral-program": "Growth Engineering",
+  "marketing-ideas": "Strategy & Monetization",
+  "marketing-psychology": "Strategy & Monetization",
+  "launch-strategy": "Strategy & Monetization",
+  "pricing-strategy": "Strategy & Monetization",
+  "revops": "Sales & RevOps",
+  "sales-enablement": "Sales & RevOps",
+  "product-marketing-context": "Foundation",
+};
+
+export const CATEGORY_ORDER = [
+  "Foundation",
+  "Conversion Optimization",
+  "Content & Copy",
+  "SEO & Discovery",
+  "Paid & Distribution",
+  "Measurement & Testing",
+  "Retention",
+  "Growth Engineering",
+  "Strategy & Monetization",
+  "Sales & RevOps",
+];
+
+export function getCategoryForSkill(slug: string): string {
+  return SKILL_CATEGORIES[slug] || "Other";
+}
