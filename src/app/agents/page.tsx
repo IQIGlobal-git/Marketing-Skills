@@ -66,6 +66,12 @@ export default function AgentsPage() {
                 </span>
                 <span>·</span>
                 <span>{new Date(agent.createdAt).toLocaleDateString()}</span>
+                {agent.chatHistory && agent.chatHistory.length > 0 && (
+                  <>
+                    <span>·</span>
+                    <span>{agent.chatHistory.length} messages</span>
+                  </>
+                )}
               </div>
             </div>
 
@@ -90,7 +96,7 @@ export default function AgentsPage() {
                 onClick={() => handleChat(agent)}
                 className="flex-1 rounded-md bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white hover:bg-[var(--accent-hover)]"
               >
-                Chat
+                {agent.chatHistory && agent.chatHistory.length > 0 ? "Continue Chat" : "Chat"}
               </button>
               <button
                 onClick={() => handleLoad(agent)}

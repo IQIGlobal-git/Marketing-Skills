@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     }
 
     const groq = new Groq({ apiKey });
-    const { messages, skillSlugs } = await request.json();
+    const { messages, skillSlugs, agentName, previousHistory } = await request.json();
 
     if (!skillSlugs || skillSlugs.length === 0) {
       return new Response(
@@ -38,9 +38,25 @@ export async function POST(request: Request) {
       })
     );
 
+    // Build conversation memory from previous history (if any)
+    let memorySection = "";
+    if (previousHistory && previousHistory.length > 0) {
+      // Summarize key context from prior conversations (keep last 20 exchanges max to stay within limits)
+      const recentHistory = previousHistory.slice(-40); // 40 messages = ~20 exchanges
+      const memoryLines = recentHistory.map(
+        (m: { role: string; content: string }) =>
+          `${m.role === "user" ? "User" : "Assistant"}: ${m.content.slice(0, 300)}${m.content.length > 300 ? "..." : ""}`
+      );
+      memorySection = `\n\n=== CONVERSATION MEMORY ===
+You have an ongoing relationship with this user from previous conversations. Here is the context from your prior interactions. Use this to maintain continuity, remember their business details, preferences, and any advice you previously gave. Reference this history naturally when relevant.
+
+${memoryLines.join("\n")}
+=== END CONVERSATION MEMORY ===`;
+    }
+
     // Build system prompt from skills
     const systemPrompt = [
-      `You are a marketing expert assistant with specialized skills.
+      `You are a marketing expert assistant${agentName ? ` named "${agentName}"` : ""} with specialized skills.
 
 IMPORTANT BEHAVIORAL RULES — follow these for EVERY interaction:
 1. Before answering any request, ALWAYS ask the user for relevant context about their business, product, target audience, current situation, and goals. Do not make assumptions — gather information first.
@@ -48,6 +64,7 @@ IMPORTANT BEHAVIORAL RULES — follow these for EVERY interaction:
 3. Be conversational and guide the user step by step. Ask focused follow-up questions as needed to give the best possible advice.
 4. Only provide a full detailed response AFTER you have gathered sufficient context and confirmed the user's intent.
 5. When the user provides context, acknowledge it and use it to tailor your response specifically to their situation.
+6. If you have conversation memory from previous sessions, use it to maintain continuity. Reference the user's business, goals, and previous discussions naturally without making the user repeat themselves.
 
 Use the following skill instructions to guide your responses:\n`,
       ...skillContents
@@ -56,6 +73,7 @@ Use the following skill instructions to guide your responses:\n`,
           ({ slug, content }) =>
             `=== SKILL: ${slug} ===\n${content}\n=== END SKILL ===`
         ),
+      memorySection,
     ].join("\n\n");
 
     const stream = await groq.chat.completions.create({

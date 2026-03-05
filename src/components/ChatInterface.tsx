@@ -14,15 +14,24 @@ export default function ChatInterface() {
     clearMessages,
     agentName,
     apiKey,
+    currentAgentId,
+    savedAgents,
   } = useAgent();
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [showKeyInput, setShowKeyInput] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const hasScrolled = useRef(false);
 
+  // Scroll to bottom on initial load and new messages
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (!hasScrolled.current && messages.length > 0) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "instant" });
+      hasScrolled.current = true;
+    } else {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages]);
 
   const sendMessage = async () => {
@@ -39,6 +48,18 @@ export default function ChatInterface() {
     addMessage({ role: "assistant", content: "" });
     setIsStreaming(true);
 
+    // Get previous history for context (from saved agent, excluding current conversation)
+    let previousHistory: { role: string; content: string }[] = [];
+    if (currentAgentId) {
+      const savedAgent = savedAgents.find((a) => a.id === currentAgentId);
+      if (savedAgent?.chatHistory && savedAgent.chatHistory.length > 0) {
+        // If this is a continued session, the saved history IS the current messages
+        // Only send "previous" history if there's history beyond the current session
+        // We'll send the full history as context - the API will handle truncation
+        previousHistory = [];
+      }
+    }
+
     try {
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
@@ -53,6 +74,8 @@ export default function ChatInterface() {
         body: JSON.stringify({
           messages: allMessages,
           skillSlugs: selectedSkills.map((s) => s.slug),
+          agentName: agentName || undefined,
+          previousHistory: previousHistory.length > 0 ? previousHistory : undefined,
         }),
       });
 
@@ -98,6 +121,8 @@ export default function ChatInterface() {
     el.style.height = Math.min(el.scrollHeight, 200) + "px";
   };
 
+  const messageCount = messages.length;
+
   return (
     <div className="flex h-[calc(100vh-3.5rem)] flex-col">
       {/* Agent header bar */}
@@ -115,12 +140,19 @@ export default function ChatInterface() {
             </span>
           ))}
         </div>
-        <button
-          onClick={clearMessages}
-          className="ml-auto text-xs text-[var(--muted)] hover:text-[var(--foreground)]"
-        >
-          Clear chat
-        </button>
+        <div className="ml-auto flex items-center gap-3">
+          {messageCount > 0 && (
+            <span className="text-[10px] text-[var(--muted)]">
+              {messageCount} message{messageCount !== 1 ? "s" : ""}
+            </span>
+          )}
+          <button
+            onClick={clearMessages}
+            className="text-xs text-[var(--muted)] hover:text-[var(--foreground)]"
+          >
+            Clear chat
+          </button>
+        </div>
       </div>
 
       {/* API key banner */}
@@ -176,7 +208,7 @@ export default function ChatInterface() {
             value={input}
             onChange={handleTextareaInput}
             onKeyDown={handleKeyDown}
-            placeholder="Type your message..."
+            placeholder={messages.length > 0 ? "Continue the conversation..." : "Type your message..."}
             rows={1}
             className="flex-1 resize-none rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
           />

@@ -21,6 +21,7 @@ export interface SavedAgent {
   name: string;
   skills: Skill[];
   createdAt: string;
+  chatHistory: ChatMessage[];
 }
 
 export type ThemeName = "midnight" | "snow" | "forest" | "sunset" | "ocean";
