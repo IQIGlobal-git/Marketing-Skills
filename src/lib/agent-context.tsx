@@ -4,13 +4,12 @@
  * AgentProvider wraps the entire app and manages:
  * - Selected skills and agent configuration
  * - Chat messages with auto-persistence to localStorage
- * - Multi-provider API keys (Groq, OpenAI, Anthropic, Gemini)
+ * - Google Gemini API key
  * - Selected AI model
  * - Theme preferences
  * - Saved agents (create, update, delete, load)
  *
  * All state is persisted to localStorage for cross-session continuity.
- * Legacy single Groq API key is auto-migrated to the new multi-provider format.
  */
 "use client";
 
@@ -32,7 +31,7 @@ interface AgentContextType {
   // Agent identity
   agentName: string;
   setAgentName: (name: string) => void;
-  // Multi-provider API keys (stored per provider in localStorage)
+  // Gemini API key (stored in localStorage)
   apiKeys: ApiKeys;
   setProviderKey: (provider: AIProvider, key: string) => void;
   // Model selection
@@ -51,7 +50,7 @@ interface AgentContextType {
 
 const AgentContext = createContext<AgentContextType | null>(null);
 
-const DEFAULT_KEYS: ApiKeys = { groq: "", openai: "", anthropic: "", gemini: "" };
+const DEFAULT_KEYS: ApiKeys = { gemini: "" };
 
 /** Safely read a JSON value from localStorage with a fallback */
 function readLocal<T>(key: string, fallback: T): T {
@@ -82,21 +81,14 @@ export function AgentProvider({ children }: { children: ReactNode }) {
     readLocal<string | null>("current-agent-id", null)
   );
 
-  // Multi-provider API keys with legacy migration
+  // Gemini API key from localStorage
   const [apiKeys, setApiKeys] = useState<ApiKeys>(() => {
-    const legacy = readLocal<string>("groq-api-key", "");
-    const stored = readLocal<ApiKeys>("api-keys", DEFAULT_KEYS);
-    // Migrate old single "groq-api-key" to the new multi-provider format
-    if (legacy && !stored.groq) {
-      stored.groq = legacy;
-      writeLocal("api-keys", stored);
-    }
-    return stored;
+    return readLocal<ApiKeys>("api-keys", DEFAULT_KEYS);
   });
 
-  // Currently selected AI model (defaults to Groq Llama 3.3 70B)
+  // Currently selected AI model (defaults to Gemini 2.0 Flash)
   const [selectedModel, setSelectedModelState] = useState(() =>
-    readLocal<string>("selected-model", "llama-3.3-70b-versatile")
+    readLocal<string>("selected-model", "gemini-2.0-flash")
   );
 
   const [theme, setThemeState] = useState<ThemeName>(() => readLocal<ThemeName>("theme", "midnight"));

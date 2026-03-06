@@ -20,7 +20,7 @@ interface ApiKeyInputProps {
   provider?: AIProvider;
 }
 
-export default function ApiKeyInput({ compact = false, provider = "groq" }: ApiKeyInputProps) {
+export default function ApiKeyInput({ compact = false, provider = "gemini" }: ApiKeyInputProps) {
   const { apiKeys, setProviderKey } = useAgent();
   const currentKey = apiKeys[provider];
   const info = PROVIDER_INFO[provider];

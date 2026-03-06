@@ -1,8 +1,7 @@
 /**
- * ModelSelector — Dropdown to pick the AI model/provider for chat.
+ * ModelSelector — Dropdown to pick the Gemini model for chat.
  *
- * Groups available models by provider (Groq, OpenAI, Anthropic, Gemini).
- * Shows a "No key" warning for providers without a saved API key.
+ * Shows available Gemini models (2.0 Flash, 2.0 Flash Lite).
  * Selection is persisted to localStorage via the agent context.
  */
 "use client";
@@ -61,7 +60,7 @@ export default function ModelSelector() {
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]">
                   {PROVIDER_INFO[provider as keyof typeof PROVIDER_INFO].name}
                 </span>
-                {!hasKey(provider) && provider !== "groq" && (
+                {!hasKey(provider) && (
                   <span className="text-[9px] text-amber-400">No key</span>
                 )}
               </div>

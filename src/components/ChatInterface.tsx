@@ -3,7 +3,7 @@
  *
  * Features:
  * - Real-time streaming responses from the selected AI model
- * - Model selector dropdown (Groq, OpenAI, Anthropic, Gemini)
+ * - Model selector dropdown (Gemini 2.0 Flash, Flash Lite)
  * - Auto-scrolling message list with markdown rendering
  * - Auto-resizing textarea with Enter-to-send (Shift+Enter for newline)
  * - Conversation memory (previous history passed to API for context)
@@ -73,7 +73,7 @@ export default function ChatInterface() {
 
     // Determine provider from selected model
     const modelInfo = AI_MODELS.find((m) => m.id === selectedModel);
-    const provider = modelInfo?.provider || "groq";
+    const provider = modelInfo?.provider || "gemini";
     const providerKey = apiKeys[provider];
 
     try {

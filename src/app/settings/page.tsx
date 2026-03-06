@@ -1,9 +1,8 @@
 /**
- * Settings page — Manage API keys for all supported AI providers.
+ * Settings page — Manage your Google Gemini API key.
  *
- * Displays a key input + validation for each provider (Groq, OpenAI, Anthropic, Gemini).
- * Keys are stored in localStorage per provider and never sent to our servers.
- * Each key can be independently validated with the /api/check-key endpoint.
+ * Keys are stored in localStorage and never sent to our servers.
+ * The key can be validated with the /api/check-key endpoint.
  */
 "use client";
 
@@ -12,8 +11,8 @@ import { useAgent } from "@/lib/agent-context";
 import { AIProvider, PROVIDER_INFO } from "@/lib/types";
 import ApiKeyInput from "@/components/ApiKeyInput";
 
-/** All providers displayed in the settings page */
-const PROVIDERS: AIProvider[] = ["groq", "openai", "anthropic", "gemini"];
+/** Provider displayed in the settings page */
+const PROVIDERS: AIProvider[] = ["gemini"];
 
 export default function SettingsPage() {
   const { apiKeys } = useAgent();
@@ -55,7 +54,7 @@ export default function SettingsPage() {
     <main className="mx-auto max-w-2xl px-4 py-8">
       <h1 className="mb-2 text-2xl font-bold text-[var(--foreground)]">Settings</h1>
       <p className="mb-8 text-sm text-[var(--muted)]">
-        Manage your API keys for different AI providers. Keys are stored locally in your browser.
+        Manage your Google Gemini API key. Keys are stored locally in your browser.
       </p>
 
       {/* API Key Sections — one per provider */}
@@ -125,13 +124,16 @@ export default function SettingsPage() {
         <h2 className="mb-4 text-lg font-semibold text-[var(--foreground)]">About API Keys</h2>
         <div className="space-y-3 text-sm text-[var(--muted)]">
           <p>
-            This app supports <strong className="text-[var(--foreground)]">4 AI providers</strong>: Groq (Llama), OpenAI (GPT), Anthropic (Claude), and Google Gemini. Select your preferred model in the chat interface.
+            This app is powered by <strong className="text-[var(--foreground)]">Google Gemini</strong> (2.0 Flash and 2.0 Flash Lite models). Select your preferred model in the chat interface.
           </p>
           <p>
-            Your API keys are stored locally in your browser and never sent to our servers. They are only sent directly to the respective provider when making chat requests.
+            Your API key is stored locally in your browser and never sent to our servers. It is only sent directly to Google when making chat requests.
           </p>
           <p>
-            Groq and Gemini offer free tiers. OpenAI and Anthropic require paid API access.
+            Get a free API key at{" "}
+            <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] hover:underline">
+              aistudio.google.com/apikey
+            </a>.
           </p>
         </div>
       </section>

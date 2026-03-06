@@ -12,7 +12,7 @@ import Header from "@/components/Header";
 export const metadata: Metadata = {
   title: "Marketing Skills Agent Builder",
   description:
-    "Browse marketing skills, build custom AI agents, and chat with them. Supports Groq, OpenAI, Anthropic, and Gemini.",
+    "Browse marketing skills, build custom AI agents, and chat with them. Powered by Google Gemini.",
 };
 
 export default function RootLayout({

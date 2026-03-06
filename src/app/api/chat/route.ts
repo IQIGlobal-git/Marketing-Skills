@@ -1,39 +1,22 @@
 /**
- * POST /api/chat — Streaming chat endpoint with multi-provider LLM support.
+ * POST /api/chat — Streaming chat endpoint powered by Google Gemini.
  *
- * Accepts a model ID in the request body, determines the provider (Groq, OpenAI,
- * Anthropic, or Gemini), and streams the response back as plain text.
+ * Streams responses from Gemini models (2.0 Flash, 2.0 Flash Lite) as plain text.
  *
- * API key resolution: request header (x-{provider}-api-key) → environment variable.
- * This allows users to provide personal keys while falling back to server defaults.
+ * API key resolution: request header (x-gemini-api-key) → GEMINI_API_KEY env var.
  *
  * Request body:
  *   - messages: ChatMessage[] — current conversation
  *   - skillSlugs: string[] — selected skill slugs (fetched from GitHub for system prompt)
- *   - model: string — model ID (e.g., "gpt-4o", "llama-3.3-70b-versatile")
+ *   - model: string — model ID (defaults to "gemini-2.0-flash")
  *   - agentName?: string — optional custom agent name
  *   - previousHistory?: ChatMessage[] — prior conversation context for memory
  */
 
-import Groq from "groq-sdk";
-import OpenAI from "openai";
-import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
-
-/** Maps model IDs to their provider for routing */
-const MODEL_PROVIDERS: Record<string, string> = {
-  "llama-3.3-70b-versatile": "groq",
-  "llama-3.1-8b-instant": "groq",
-  "gpt-4o": "openai",
-  "gpt-4o-mini": "openai",
-  "claude-sonnet-4-20250514": "anthropic",
-  "claude-haiku-4-5-20251001": "anthropic",
-  "gemini-2.0-flash": "gemini",
-  "gemini-2.0-flash-lite": "gemini",
-};
 
 /**
  * Builds the system prompt from skill contents and conversation memory.
@@ -81,122 +64,6 @@ Use the following skill instructions to guide your responses:\n`,
   ].join("\n\n");
 }
 
-// --- Provider-specific streaming functions ---
-// Each function creates a client, makes a streaming request, and returns a ReadableStream.
-
-/** Stream chat completion from Groq (Llama models) */
-async function streamGroq(
-  apiKey: string,
-  model: string,
-  systemPrompt: string,
-  messages: { role: string; content: string }[]
-): Promise<ReadableStream> {
-  const groq = new Groq({ apiKey });
-  const stream = await groq.chat.completions.create({
-    model,
-    max_tokens: 4096,
-    stream: true,
-    messages: [
-      { role: "system", content: systemPrompt },
-      ...messages.map((m) => ({
-        role: m.role as "user" | "assistant",
-        content: m.content,
-      })),
-    ],
-  });
-
-  const encoder = new TextEncoder();
-  return new ReadableStream({
-    async start(controller) {
-      try {
-        for await (const chunk of stream) {
-          const text = chunk.choices[0]?.delta?.content;
-          if (text) controller.enqueue(encoder.encode(text));
-        }
-        controller.close();
-      } catch (error) {
-        console.error("Groq stream error:", error);
-        controller.error(error);
-      }
-    },
-  });
-}
-
-/** Stream chat completion from OpenAI (GPT models) */
-async function streamOpenAI(
-  apiKey: string,
-  model: string,
-  systemPrompt: string,
-  messages: { role: string; content: string }[]
-): Promise<ReadableStream> {
-  const openai = new OpenAI({ apiKey });
-  const stream = await openai.chat.completions.create({
-    model,
-    max_tokens: 4096,
-    stream: true,
-    messages: [
-      { role: "system", content: systemPrompt },
-      ...messages.map((m) => ({
-        role: m.role as "user" | "assistant",
-        content: m.content,
-      })),
-    ],
-  });
-
-  const encoder = new TextEncoder();
-  return new ReadableStream({
-    async start(controller) {
-      try {
-        for await (const chunk of stream) {
-          const text = chunk.choices[0]?.delta?.content;
-          if (text) controller.enqueue(encoder.encode(text));
-        }
-        controller.close();
-      } catch (error) {
-        console.error("OpenAI stream error:", error);
-        controller.error(error);
-      }
-    },
-  });
-}
-
-/** Stream chat completion from Anthropic (Claude models) */
-async function streamAnthropic(
-  apiKey: string,
-  model: string,
-  systemPrompt: string,
-  messages: { role: string; content: string }[]
-): Promise<ReadableStream> {
-  const anthropic = new Anthropic({ apiKey });
-  // Anthropic uses a separate 'system' parameter instead of a system message
-  const stream = anthropic.messages.stream({
-    model,
-    max_tokens: 4096,
-    system: systemPrompt,
-    messages: messages.map((m) => ({
-      role: m.role as "user" | "assistant",
-      content: m.content,
-    })),
-  });
-
-  const encoder = new TextEncoder();
-  return new ReadableStream({
-    async start(controller) {
-      try {
-        for await (const event of stream) {
-          if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-            controller.enqueue(encoder.encode(event.delta.text));
-          }
-        }
-        controller.close();
-      } catch (error) {
-        console.error("Anthropic stream error:", error);
-        controller.error(error);
-      }
-    },
-  });
-}
-
 /** Stream chat completion from Google Gemini */
 async function streamGemini(
   apiKey: string,
@@ -238,34 +105,17 @@ async function streamGemini(
   });
 }
 
-// --- Main request handler ---
-
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { messages, skillSlugs, agentName, previousHistory, model = "llama-3.3-70b-versatile" } = body;
-
-    // Determine which provider to use based on the model ID
-    const provider = MODEL_PROVIDERS[model] || "groq";
+    const { messages, skillSlugs, agentName, previousHistory, model = "gemini-2.0-flash" } = body;
 
     // Resolve API key: client header → server environment variable
-    let apiKey = request.headers.get(`x-${provider}-api-key`) || "";
-    if (!apiKey) {
-      const envKeys: Record<string, string | undefined> = {
-        groq: process.env.GROQ_API_KEY,
-        openai: process.env.OPENAI_API_KEY,
-        anthropic: process.env.ANTHROPIC_API_KEY,
-        gemini: process.env.GEMINI_API_KEY,
-      };
-      apiKey = envKeys[provider] || "";
-    }
+    const apiKey = request.headers.get("x-gemini-api-key") || process.env.GEMINI_API_KEY || "";
 
     if (!apiKey) {
-      const providerNames: Record<string, string> = {
-        groq: "Groq", openai: "OpenAI", anthropic: "Anthropic", gemini: "Google Gemini",
-      };
       return new Response(
-        JSON.stringify({ error: `No ${providerNames[provider]} API key provided. Add your key in Settings.` }),
+        JSON.stringify({ error: "No Google Gemini API key provided. Add your key in Settings." }),
         { status: 401, headers: { "Content-Type": "application/json" } }
       );
     }
@@ -292,23 +142,7 @@ export async function POST(request: Request) {
     );
 
     const systemPrompt = buildSystemPrompt(skillContents, agentName, previousHistory);
-
-    // Route to the correct provider's streaming function
-    let readable: ReadableStream;
-    switch (provider) {
-      case "openai":
-        readable = await streamOpenAI(apiKey, model, systemPrompt, messages);
-        break;
-      case "anthropic":
-        readable = await streamAnthropic(apiKey, model, systemPrompt, messages);
-        break;
-      case "gemini":
-        readable = await streamGemini(apiKey, model, systemPrompt, messages);
-        break;
-      default:
-        readable = await streamGroq(apiKey, model, systemPrompt, messages);
-        break;
-    }
+    const readable = await streamGemini(apiKey, model, systemPrompt, messages);
 
     return new Response(readable, {
       headers: { "Content-Type": "text/plain; charset=utf-8" },
