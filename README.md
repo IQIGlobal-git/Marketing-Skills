@@ -1,12 +1,13 @@
 # Marketing Skills Agent Builder
 
-A web application that lets you browse 32+ marketing skills, build custom AI agents with selected expertise, and chat with them in real-time. Powered by Groq (Llama 3.3 70B) and skills from [coreyhaines31/marketingskills](https://github.com/coreyhaines31/marketingskills).
+A web application that lets you browse 32+ marketing skills, build custom AI agents with selected expertise, and chat with them in real-time. Powered by OpenAI and skills from [coreyhaines31/marketingskills](https://github.com/coreyhaines31/marketingskills).
 
 ## Features
 
 - **Skills Browser** - Browse and search 32+ marketing skills organized by category (SEO, Copywriting, CRO, Paid Ads, Analytics, and more)
 - **Agent Builder** - Select one or more skills to create a custom marketing agent
 - **Live Chat** - Chat with your agent in real-time with streaming responses
+- **Model Selection** - Choose from GPT-4o, GPT-4o Mini, GPT-4 Turbo, or GPT-3.5 Turbo
 - **Dynamic Skills** - Skills are fetched from GitHub and stay up-to-date automatically
 
 ## Skills Source
@@ -23,7 +24,7 @@ The web app fetches these skills dynamically from GitHub - no manual installatio
 ### Prerequisites
 
 - Node.js 18+
-- A [Groq API key](https://console.groq.com/) (free tier available)
+- An [OpenAI API key](https://platform.openai.com/api-keys)
 
 ### Local Development (localhost)
 
@@ -42,9 +43,9 @@ The web app fetches these skills dynamically from GitHub - no manual installatio
    ```bash
    cp .env.example .env.local
    ```
-   Edit `.env.local` and add your Groq API key:
+   Edit `.env.local` and add your OpenAI API key:
    ```
-   GROQ_API_KEY=gsk_your-key-here
+   OPENAI_API_KEY=sk-your-key-here
    ```
 
 4. **Start the development server:**
@@ -70,7 +71,7 @@ The easiest way to deploy is via Vercel:
 
 1. Push your code to GitHub
 2. Go to [vercel.com/new](https://vercel.com/new) and import your repository
-3. Add the `GROQ_API_KEY` environment variable in the Vercel dashboard
+3. Add the `OPENAI_API_KEY` environment variable in the Vercel dashboard
 4. Click Deploy
 
 Alternatively, deploy via the Vercel CLI:
@@ -83,7 +84,7 @@ vercel
 
 - **Framework**: [Next.js](https://nextjs.org/) (App Router, TypeScript)
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/)
-- **AI**: [Groq](https://groq.com/) via `groq-sdk` (Llama 3.3 70B, free tier)
+- **AI**: [OpenAI](https://openai.com/) via `openai` SDK (GPT-4o, GPT-4 Turbo, GPT-3.5 Turbo)
 - **Skills**: Fetched from [coreyhaines31/marketingskills](https://github.com/coreyhaines31/marketingskills)
 
 ## Project Structure
@@ -98,7 +99,7 @@ src/
 │   │   └── chat/page.tsx     # Chat interface
 │   └── api/
 │       ├── skills/route.ts   # GET: fetch skills from GitHub
-│       └── chat/route.ts     # POST: stream Groq/Llama responses
+│       └── chat/route.ts     # POST: stream OpenAI responses
 ├── components/
 │   ├── Header.tsx            # Navigation header
 │   ├── SkillBrowser.tsx      # Skills grid with filters

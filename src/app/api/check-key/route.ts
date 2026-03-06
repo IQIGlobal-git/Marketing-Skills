@@ -1,4 +1,4 @@
-import Groq from "groq-sdk";
+import OpenAI from "openai";
 
 export async function POST(request: Request) {
   try {
@@ -8,8 +8,8 @@ export async function POST(request: Request) {
       return Response.json({ valid: false, error: "No API key provided" }, { status: 400 });
     }
 
-    const groq = new Groq({ apiKey });
-    const models = await groq.models.list();
+    const openai = new OpenAI({ apiKey });
+    const models = await openai.models.list();
 
     return Response.json({
       valid: true,

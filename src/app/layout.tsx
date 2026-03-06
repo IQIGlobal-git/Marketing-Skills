@@ -6,7 +6,7 @@ import Header from "@/components/Header";
 export const metadata: Metadata = {
   title: "Marketing Skills Agent Builder",
   description:
-    "Browse marketing skills, build custom AI agents, and chat with them powered by Groq",
+    "Browse marketing skills, build custom AI agents, and chat with them powered by OpenAI",
 };
 
 export default function RootLayout({
