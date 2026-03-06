@@ -14,6 +14,7 @@ export default function ChatInterface() {
     clearMessages,
     agentName,
     apiKey,
+    model,
     currentAgentId,
     savedAgents,
   } = useAgent();
@@ -65,7 +66,7 @@ export default function ChatInterface() {
         "Content-Type": "application/json",
       };
       if (apiKey) {
-        headers["x-groq-api-key"] = apiKey;
+        headers["x-openai-api-key"] = apiKey;
       }
 
       const res = await fetch("/api/chat", {
@@ -76,6 +77,7 @@ export default function ChatInterface() {
           skillSlugs: selectedSkills.map((s) => s.slug),
           agentName: agentName || undefined,
           previousHistory: previousHistory.length > 0 ? previousHistory : undefined,
+          model,
         }),
       });
 

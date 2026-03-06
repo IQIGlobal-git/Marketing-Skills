@@ -21,15 +21,15 @@ export default function ApiKeyInput({ compact = false }: { compact?: boolean }) 
     <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
       <div className="mb-2 flex items-center justify-between">
         <h3 className="text-sm font-medium text-[var(--foreground)]">
-          Groq API Key
+          OpenAI API Key
         </h3>
         <a
-          href="https://console.groq.com"
+          href="https://platform.openai.com/api-keys"
           target="_blank"
           rel="noopener noreferrer"
           className="text-[10px] text-[var(--accent)] hover:underline"
         >
-          Get a free key
+          Get an API key
         </a>
       </div>
       <p className="mb-3 text-xs text-[var(--muted)]">
@@ -43,7 +43,7 @@ export default function ApiKeyInput({ compact = false }: { compact?: boolean }) 
             type={show ? "text" : "password"}
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            placeholder="gsk_..."
+            placeholder="sk-..."
             className="w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
           />
           <button

@@ -1,21 +1,21 @@
-import Groq from "groq-sdk";
+import OpenAI from "openai";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 export async function POST(request: Request) {
   try {
-    const apiKey = request.headers.get("x-groq-api-key") || process.env.GROQ_API_KEY;
+    const apiKey = request.headers.get("x-openai-api-key") || process.env.OPENAI_API_KEY;
 
     if (!apiKey) {
       return new Response(
-        JSON.stringify({ error: "No API key provided. Please enter your Groq API key in settings." }),
+        JSON.stringify({ error: "No API key provided. Please enter your OpenAI API key in settings." }),
         { status: 401, headers: { "Content-Type": "application/json" } }
       );
     }
 
-    const groq = new Groq({ apiKey });
-    const { messages, skillSlugs, agentName, previousHistory } = await request.json();
+    const openai = new OpenAI({ apiKey });
+    const { messages, skillSlugs, agentName, previousHistory, model } = await request.json();
 
     if (!skillSlugs || skillSlugs.length === 0) {
       return new Response(
@@ -76,8 +76,8 @@ Use the following skill instructions to guide your responses:\n`,
       memorySection,
     ].join("\n\n");
 
-    const stream = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+    const stream = await openai.chat.completions.create({
+      model: model || "gpt-4o",
       max_tokens: 4096,
       stream: true,
       messages: [

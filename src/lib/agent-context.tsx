@@ -17,6 +17,8 @@ interface AgentContextType {
   setAgentName: (name: string) => void;
   apiKey: string;
   setApiKey: (key: string) => void;
+  model: string;
+  setModel: (model: string) => void;
   theme: ThemeName;
   setTheme: (theme: ThemeName) => void;
   savedAgents: SavedAgent[];
@@ -54,7 +56,8 @@ export function AgentProvider({ children }: { children: ReactNode }) {
   const [currentAgentId, setCurrentAgentId] = useState<string | null>(() =>
     readLocal<string | null>("current-agent-id", null)
   );
-  const [apiKey, setApiKeyState] = useState(() => readLocal<string>("groq-api-key", ""));
+  const [apiKey, setApiKeyState] = useState(() => readLocal<string>("openai-api-key", ""));
+  const [model, setModelState] = useState(() => readLocal<string>("openai-model", "gpt-4o"));
   const [theme, setThemeState] = useState<ThemeName>(() => readLocal<ThemeName>("theme", "midnight"));
   const [savedAgents, setSavedAgents] = useState<SavedAgent[]>(() => readLocal<SavedAgent[]>("saved-agents", []));
 
@@ -129,7 +132,13 @@ export function AgentProvider({ children }: { children: ReactNode }) {
   // Sync API key to localStorage
   const setApiKey = (key: string) => {
     setApiKeyState(key);
-    writeLocal("groq-api-key", key);
+    writeLocal("openai-api-key", key);
+  };
+
+  // Sync model to localStorage
+  const setModel = (m: string) => {
+    setModelState(m);
+    writeLocal("openai-model", m);
   };
 
   const setTheme = (t: ThemeName) => setThemeState(t);
@@ -263,6 +272,8 @@ export function AgentProvider({ children }: { children: ReactNode }) {
         setAgentName,
         apiKey,
         setApiKey,
+        model,
+        setModel,
         theme,
         setTheme,
         savedAgents,
