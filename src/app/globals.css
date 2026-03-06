@@ -1,6 +1,15 @@
 @import "tailwindcss";
 
-/* Theme definitions */
+/**
+ * Theme definitions — 5 color themes controlled via data-theme attribute on <html>.
+ *
+ * Each theme defines CSS custom properties for background, foreground, surface,
+ * border, muted text, accent colors, and accent variants. These variables are
+ * used throughout all components via var(--property-name) syntax.
+ *
+ * Themes: midnight (default dark), snow (light), forest (dark green),
+ * sunset (dark orange), ocean (dark cyan).
+ */
 :root,
 [data-theme="midnight"] {
   color-scheme: dark;

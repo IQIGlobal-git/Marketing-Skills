@@ -1,5 +1,10 @@
+/**
+ * Homepage — Landing page with hero section, how-it-works steps, and category grid.
+ * Categories are hardcoded for fast rendering (not fetched from the API).
+ */
 import Link from "next/link";
 
+/** Hardcoded category summary for the homepage grid */
 const CATEGORIES = [
   { name: "Conversion Optimization", count: 6, desc: "Optimize pages, signups, onboarding, forms, popups, and paywalls" },
   { name: "Content & Copy", count: 5, desc: "Write compelling copy, emails, and social content" },

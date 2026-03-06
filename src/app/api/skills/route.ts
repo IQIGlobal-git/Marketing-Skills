@@ -1,3 +1,12 @@
+/**
+ * GET /api/skills — Fetches and organizes marketing skills from GitHub.
+ *
+ * 1. Fetches all skills from the coreyhaines31/marketingskills repo
+ * 2. Groups skills into categories using the local category mapping
+ * 3. Sorts categories by the predefined display order
+ * 4. Returns { skills: Skill[], categories: Category[] }
+ */
+
 import { NextResponse } from "next/server";
 import { fetchSkillsList } from "@/lib/github";
 import { CATEGORY_ORDER } from "@/lib/categories";
@@ -7,6 +16,7 @@ export async function GET() {
   try {
     const skills = await fetchSkillsList();
 
+    // Group skills by category
     const categoryMap = new Map<string, Category>();
     for (const skill of skills) {
       if (!categoryMap.has(skill.category)) {
@@ -15,11 +25,12 @@ export async function GET() {
       categoryMap.get(skill.category)!.skills.push(skill);
     }
 
+    // Sort categories by predefined order
     const categories = CATEGORY_ORDER
       .filter((name) => categoryMap.has(name))
       .map((name) => categoryMap.get(name)!);
 
-    // Add any categories not in the predefined order
+    // Append any categories not in the predefined order (e.g., new "Other" category)
     for (const [name, cat] of categoryMap) {
       if (!CATEGORY_ORDER.includes(name)) {
         categories.push(cat);

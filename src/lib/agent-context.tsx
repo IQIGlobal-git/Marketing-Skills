@@ -1,26 +1,47 @@
+/**
+ * Global state management via React Context.
+ *
+ * AgentProvider wraps the entire app and manages:
+ * - Selected skills and agent configuration
+ * - Chat messages with auto-persistence to localStorage
+ * - Multi-provider API keys (Groq, OpenAI, Anthropic, Gemini)
+ * - Selected AI model
+ * - Theme preferences
+ * - Saved agents (create, update, delete, load)
+ *
+ * All state is persisted to localStorage for cross-session continuity.
+ * Legacy single Groq API key is auto-migrated to the new multi-provider format.
+ */
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
-import { ChatMessage, SavedAgent, Skill, ThemeName } from "./types";
+import { ChatMessage, SavedAgent, Skill, ThemeName, ApiKeys, AIProvider } from "./types";
 
 interface AgentContextType {
+  // Skills
   selectedSkills: Skill[];
   addSkill: (skill: Skill) => void;
   removeSkill: (slug: string) => void;
   clearSkills: () => void;
   isSelected: (slug: string) => boolean;
+  // Chat
   messages: ChatMessage[];
   addMessage: (msg: ChatMessage) => void;
   updateLastMessage: (content: string) => void;
   clearMessages: () => void;
+  // Agent identity
   agentName: string;
   setAgentName: (name: string) => void;
-  apiKey: string;
-  setApiKey: (key: string) => void;
-  model: string;
-  setModel: (model: string) => void;
+  // Multi-provider API keys (stored per provider in localStorage)
+  apiKeys: ApiKeys;
+  setProviderKey: (provider: AIProvider, key: string) => void;
+  // Model selection
+  selectedModel: string;
+  setSelectedModel: (model: string) => void;
+  // Theme
   theme: ThemeName;
   setTheme: (theme: ThemeName) => void;
+  // Saved agents
   savedAgents: SavedAgent[];
   saveCurrentAgent: () => string | null;
   deleteAgent: (id: string) => void;
@@ -30,6 +51,9 @@ interface AgentContextType {
 
 const AgentContext = createContext<AgentContextType | null>(null);
 
+const DEFAULT_KEYS: ApiKeys = { groq: "", openai: "", anthropic: "", gemini: "" };
+
+/** Safely read a JSON value from localStorage with a fallback */
 function readLocal<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
   try {
@@ -41,11 +65,12 @@ function readLocal<T>(key: string, fallback: T): T {
   }
 }
 
+/** Safely write a JSON value to localStorage */
 function writeLocal(key: string, value: unknown) {
   try {
     localStorage.setItem(key, JSON.stringify(value));
   } catch {
-    /* quota exceeded */
+    /* quota exceeded — silently fail */
   }
 }
 
@@ -56,48 +81,53 @@ export function AgentProvider({ children }: { children: ReactNode }) {
   const [currentAgentId, setCurrentAgentId] = useState<string | null>(() =>
     readLocal<string | null>("current-agent-id", null)
   );
-  const [apiKey, setApiKeyState] = useState(() => readLocal<string>("openai-api-key", ""));
-  const [model, setModelState] = useState(() => readLocal<string>("openai-model", "gpt-4o"));
+
+  // Multi-provider API keys with legacy migration
+  const [apiKeys, setApiKeys] = useState<ApiKeys>(() => {
+    const legacy = readLocal<string>("groq-api-key", "");
+    const stored = readLocal<ApiKeys>("api-keys", DEFAULT_KEYS);
+    // Migrate old single "groq-api-key" to the new multi-provider format
+    if (legacy && !stored.groq) {
+      stored.groq = legacy;
+      writeLocal("api-keys", stored);
+    }
+    return stored;
+  });
+
+  // Currently selected AI model (defaults to Groq Llama 3.3 70B)
+  const [selectedModel, setSelectedModelState] = useState(() =>
+    readLocal<string>("selected-model", "llama-3.3-70b-versatile")
+  );
+
   const [theme, setThemeState] = useState<ThemeName>(() => readLocal<ThemeName>("theme", "midnight"));
   const [savedAgents, setSavedAgents] = useState<SavedAgent[]>(() => readLocal<SavedAgent[]>("saved-agents", []));
 
-  // On mount, restore active session from localStorage
+  // Restore active session state from localStorage on mount
   useEffect(() => {
     if (currentAgentId) {
       const stored = readLocal<ChatMessage[]>(`chat-history-${currentAgentId}`, []);
-      if (stored.length > 0) {
-        setMessages(stored);
-      }
+      if (stored.length > 0) setMessages(stored);
     } else {
-      // Restore unsaved session chat
       const unsaved = readLocal<ChatMessage[]>("chat-history-unsaved", []);
-      if (unsaved.length > 0) {
-        setMessages(unsaved);
-      }
+      if (unsaved.length > 0) setMessages(unsaved);
     }
-    // Also restore skills and name for unsaved sessions
     const storedSkills = readLocal<Skill[]>("current-skills", []);
     const storedName = readLocal<string>("current-agent-name", "");
-    if (storedSkills.length > 0) {
-      setSelectedSkills(storedSkills);
-    }
-    if (storedName) {
-      setAgentName(storedName);
-    }
+    if (storedSkills.length > 0) setSelectedSkills(storedSkills);
+    if (storedName) setAgentName(storedName);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Persist messages whenever they change (debounced by React batching)
+  // Auto-persist messages to localStorage (skips mid-stream empty placeholders)
   useEffect(() => {
-    // Only persist non-empty message lists and completed messages (not mid-stream empty ones)
     if (messages.length === 0) return;
     const lastMsg = messages[messages.length - 1];
-    if (lastMsg.content === "") return; // mid-stream placeholder
+    if (lastMsg.content === "") return; // mid-stream placeholder, don't persist yet
 
     const key = currentAgentId ? `chat-history-${currentAgentId}` : "chat-history-unsaved";
     writeLocal(key, messages);
 
-    // Also update savedAgent's chatHistory if this is a saved agent
+    // Also sync to the savedAgents list if this is a saved agent
     if (currentAgentId) {
       setSavedAgents((prev) => {
         const idx = prev.findIndex((a) => a.id === currentAgentId);
@@ -110,43 +140,38 @@ export function AgentProvider({ children }: { children: ReactNode }) {
     }
   }, [messages, currentAgentId]);
 
-  // Persist current skills and name
-  useEffect(() => {
-    writeLocal("current-skills", selectedSkills);
-  }, [selectedSkills]);
+  // Persist skills, agent name, and agent ID whenever they change
+  useEffect(() => { writeLocal("current-skills", selectedSkills); }, [selectedSkills]);
+  useEffect(() => { writeLocal("current-agent-name", agentName); }, [agentName]);
+  useEffect(() => { writeLocal("current-agent-id", currentAgentId); }, [currentAgentId]);
 
-  useEffect(() => {
-    writeLocal("current-agent-name", agentName);
-  }, [agentName]);
-
-  useEffect(() => {
-    writeLocal("current-agent-id", currentAgentId);
-  }, [currentAgentId]);
-
-  // Sync theme to DOM
+  // Apply theme to DOM and persist
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
     writeLocal("theme", theme);
   }, [theme]);
 
-  // Sync API key to localStorage
-  const setApiKey = (key: string) => {
-    setApiKeyState(key);
-    writeLocal("openai-api-key", key);
+  /** Set API key for a specific provider and persist to localStorage */
+  const setProviderKey = (provider: AIProvider, key: string) => {
+    setApiKeys((prev) => {
+      const updated = { ...prev, [provider]: key };
+      writeLocal("api-keys", updated);
+      return updated;
+    });
   };
 
-  // Sync model to localStorage
-  const setModel = (m: string) => {
-    setModelState(m);
-    writeLocal("openai-model", m);
+  /** Set the selected AI model and persist to localStorage */
+  const setSelectedModel = (model: string) => {
+    setSelectedModelState(model);
+    writeLocal("selected-model", model);
   };
 
   const setTheme = (t: ThemeName) => setThemeState(t);
 
-  // Skills
+  // --- Skill management ---
   const addSkill = (skill: Skill) => {
     setSelectedSkills((prev) => {
-      if (prev.some((s) => s.slug === skill.slug)) return prev;
+      if (prev.some((s) => s.slug === skill.slug)) return prev; // prevent duplicates
       return [...prev, skill];
     });
   };
@@ -163,11 +188,12 @@ export function AgentProvider({ children }: { children: ReactNode }) {
   const isSelected = (slug: string) =>
     selectedSkills.some((s) => s.slug === slug);
 
-  // Messages
+  // --- Chat message management ---
   const addMessage = useCallback((msg: ChatMessage) => {
     setMessages((prev) => [...prev, msg]);
   }, []);
 
+  /** Update the last message content (used during streaming to accumulate chunks) */
   const updateLastMessage = useCallback((content: string) => {
     setMessages((prev) => {
       const updated = [...prev];
@@ -185,7 +211,6 @@ export function AgentProvider({ children }: { children: ReactNode }) {
     setMessages([]);
     const key = currentAgentId ? `chat-history-${currentAgentId}` : "chat-history-unsaved";
     writeLocal(key, []);
-    // Also clear from saved agent
     if (currentAgentId) {
       setSavedAgents((prev) => {
         const idx = prev.findIndex((a) => a.id === currentAgentId);
@@ -198,11 +223,13 @@ export function AgentProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Saved agents
+  // --- Saved agent management ---
+
+  /** Save or update the current agent. Returns the agent ID or null if no skills selected. */
   const saveCurrentAgent = (): string | null => {
     if (selectedSkills.length === 0) return null;
 
-    // If already a saved agent, update it
+    // Update existing saved agent
     if (currentAgentId) {
       setSavedAgents((prev) => {
         const idx = prev.findIndex((a) => a.id === currentAgentId);
@@ -220,6 +247,7 @@ export function AgentProvider({ children }: { children: ReactNode }) {
       return currentAgentId;
     }
 
+    // Create new saved agent
     const agent: SavedAgent = {
       id: crypto.randomUUID(),
       name: agentName.trim() || "Untitled Agent",
@@ -231,8 +259,7 @@ export function AgentProvider({ children }: { children: ReactNode }) {
     setSavedAgents(updated);
     writeLocal("saved-agents", updated);
     setCurrentAgentId(agent.id);
-    // Clean up unsaved chat
-    writeLocal("chat-history-unsaved", []);
+    writeLocal("chat-history-unsaved", []); // Clean up unsaved session
     return agent.id;
   };
 
@@ -240,18 +267,15 @@ export function AgentProvider({ children }: { children: ReactNode }) {
     const updated = savedAgents.filter((a) => a.id !== id);
     setSavedAgents(updated);
     writeLocal("saved-agents", updated);
-    // Clean up chat history
     try { localStorage.removeItem(`chat-history-${id}`); } catch { /* */ }
-    if (currentAgentId === id) {
-      setCurrentAgentId(null);
-    }
+    if (currentAgentId === id) setCurrentAgentId(null);
   };
 
+  /** Load a saved agent into the current session (skills, name, chat history) */
   const loadAgent = (agent: SavedAgent) => {
     setSelectedSkills(agent.skills);
     setAgentName(agent.name);
     setCurrentAgentId(agent.id);
-    // Restore chat history from saved agent
     const history = agent.chatHistory || readLocal<ChatMessage[]>(`chat-history-${agent.id}`, []);
     setMessages(history);
   };
@@ -259,27 +283,13 @@ export function AgentProvider({ children }: { children: ReactNode }) {
   return (
     <AgentContext.Provider
       value={{
-        selectedSkills,
-        addSkill,
-        removeSkill,
-        clearSkills,
-        isSelected,
-        messages,
-        addMessage,
-        updateLastMessage,
-        clearMessages,
-        agentName,
-        setAgentName,
-        apiKey,
-        setApiKey,
-        model,
-        setModel,
-        theme,
-        setTheme,
-        savedAgents,
-        saveCurrentAgent,
-        deleteAgent,
-        loadAgent,
+        selectedSkills, addSkill, removeSkill, clearSkills, isSelected,
+        messages, addMessage, updateLastMessage, clearMessages,
+        agentName, setAgentName,
+        apiKeys, setProviderKey,
+        selectedModel, setSelectedModel,
+        theme, setTheme,
+        savedAgents, saveCurrentAgent, deleteAgent, loadAgent,
         currentAgentId,
       }}
     >
@@ -288,6 +298,7 @@ export function AgentProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/** Hook to access the agent context. Must be used within AgentProvider. */
 export function useAgent() {
   const ctx = useContext(AgentContext);
   if (!ctx) throw new Error("useAgent must be used within AgentProvider");

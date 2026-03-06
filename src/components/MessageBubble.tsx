@@ -1,3 +1,9 @@
+/**
+ * MessageBubble — Renders a single chat message.
+ *
+ * User messages: right-aligned, accent color, plain text with whitespace preserved.
+ * Assistant messages: left-aligned, surface color, rendered as markdown via react-markdown.
+ */
 "use client";
 
 import ReactMarkdown from "react-markdown";

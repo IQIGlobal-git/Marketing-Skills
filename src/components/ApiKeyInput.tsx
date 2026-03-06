@@ -1,39 +1,60 @@
+/**
+ * ApiKeyInput — Reusable API key input component for any provider.
+ *
+ * Supports two modes:
+ * - Full mode: Shows input for a specific provider with save/show/hide
+ * - Compact mode: Returns null if the key is already set (used in chat banner)
+ *
+ * Props:
+ *   - provider: which provider's key to manage (defaults to "groq")
+ *   - compact: if true, hides when key is already set
+ */
 "use client";
 
 import { useState } from "react";
 import { useAgent } from "@/lib/agent-context";
+import { AIProvider, PROVIDER_INFO } from "@/lib/types";
 
-export default function ApiKeyInput({ compact = false }: { compact?: boolean }) {
-  const { apiKey, setApiKey } = useAgent();
-  const [value, setValue] = useState(apiKey);
+interface ApiKeyInputProps {
+  compact?: boolean;
+  provider?: AIProvider;
+}
+
+export default function ApiKeyInput({ compact = false, provider = "groq" }: ApiKeyInputProps) {
+  const { apiKeys, setProviderKey } = useAgent();
+  const currentKey = apiKeys[provider];
+  const info = PROVIDER_INFO[provider];
+
+  const [value, setValue] = useState(currentKey);
   const [show, setShow] = useState(false);
   const [saved, setSaved] = useState(false);
 
   const handleSave = () => {
-    setApiKey(value.trim());
+    setProviderKey(provider, value.trim());
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
 
-  if (compact && apiKey) return null;
+  // In compact mode, hide if key is already set
+  if (compact && currentKey) return null;
 
   return (
     <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
       <div className="mb-2 flex items-center justify-between">
         <h3 className="text-sm font-medium text-[var(--foreground)]">
-          OpenAI API Key
+          {info.name} API Key
         </h3>
         <a
-          href="https://platform.openai.com/api-keys"
+          href={info.getKeyUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="text-[10px] text-[var(--accent)] hover:underline"
         >
-          Get an API key
+          Get a key
         </a>
       </div>
       <p className="mb-3 text-xs text-[var(--muted)]">
-        {apiKey
+        {currentKey
           ? "Your key is saved. Enter a new one to replace it."
           : "Enter your API key to start chatting. Keys are stored locally in your browser."}
       </p>
@@ -43,7 +64,7 @@ export default function ApiKeyInput({ compact = false }: { compact?: boolean }) 
             type={show ? "text" : "password"}
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            placeholder="sk-..."
+            placeholder={`${info.keyPrefix}...`}
             className="w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
           />
           <button

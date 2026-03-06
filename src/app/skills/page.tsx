@@ -1,3 +1,4 @@
+/** Skills page — Renders the SkillBrowser component for browsing and selecting skills. */
 import SkillBrowser from "@/components/SkillBrowser";
 
 export default function SkillsPage() {

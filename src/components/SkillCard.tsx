@@ -1,3 +1,10 @@
+/**
+ * SkillCard — Individual skill displayed in the skills grid.
+ *
+ * Shows skill name, category badge, and a truncated description.
+ * Checkbox toggles selection. Clicking the card opens SkillDetailModal.
+ * Selected state is indicated by accent border and background.
+ */
 "use client";
 
 import { useState } from "react";

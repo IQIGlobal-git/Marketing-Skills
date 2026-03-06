@@ -1,3 +1,10 @@
+/**
+ * ThemePicker — Dropdown for switching between 5 color themes.
+ *
+ * Themes: Midnight (dark blue), Snow (light), Forest (dark green),
+ * Sunset (dark orange), Ocean (dark cyan).
+ * Theme is applied via data-theme attribute on <html> and persisted to localStorage.
+ */
 "use client";
 
 import { useState, useRef, useEffect } from "react";

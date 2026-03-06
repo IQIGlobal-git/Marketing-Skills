@@ -1,3 +1,10 @@
+/**
+ * Header — Sticky navigation bar shown on all pages.
+ *
+ * Contains links to Home, Skills, Agent, Saved Agents, and Settings.
+ * Shows badge counters for selected skills and saved agents.
+ * Includes the ThemePicker dropdown on the right.
+ */
 "use client";
 
 import Link from "next/link";

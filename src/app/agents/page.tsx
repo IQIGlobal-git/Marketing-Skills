@@ -1,3 +1,9 @@
+/**
+ * Saved Agents page — Lists all saved agent configurations.
+ *
+ * Each agent card shows its name, skill count, creation date, and message count.
+ * Actions: continue chat, edit skills, or delete the agent.
+ */
 "use client";
 
 import Link from "next/link";

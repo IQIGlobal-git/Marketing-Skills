@@ -1,3 +1,7 @@
+/**
+ * Chat page — Renders the ChatInterface for the current agent.
+ * Guards against accessing without selected skills and redirects to /skills.
+ */
 "use client";
 
 import { useAgent } from "@/lib/agent-context";

@@ -1,9 +1,23 @@
+/**
+ * ChatInterface — Main chat UI for interacting with the marketing agent.
+ *
+ * Features:
+ * - Real-time streaming responses from the selected AI model
+ * - Model selector dropdown (Groq, OpenAI, Anthropic, Gemini)
+ * - Auto-scrolling message list with markdown rendering
+ * - Auto-resizing textarea with Enter-to-send (Shift+Enter for newline)
+ * - Conversation memory (previous history passed to API for context)
+ * - Shows API key banner on 401 errors
+ * - Suggested prompt buttons on empty state
+ */
 "use client";
 
 import { useState, useRef, useEffect } from "react";
 import { useAgent } from "@/lib/agent-context";
+import { AI_MODELS } from "@/lib/types";
 import MessageBubble from "./MessageBubble";
 import ApiKeyInput from "./ApiKeyInput";
+import ModelSelector from "./ModelSelector";
 
 export default function ChatInterface() {
   const {
@@ -13,8 +27,8 @@ export default function ChatInterface() {
     updateLastMessage,
     clearMessages,
     agentName,
-    apiKey,
-    model,
+    apiKeys,
+    selectedModel,
     currentAgentId,
     savedAgents,
   } = useAgent();
@@ -23,9 +37,8 @@ export default function ChatInterface() {
   const [showKeyInput, setShowKeyInput] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const hasScrolled = useRef(false);
+  const hasScrolled = useRef(false); // Track first scroll to avoid smooth animation on load
 
-  // Scroll to bottom on initial load and new messages
   useEffect(() => {
     if (!hasScrolled.current && messages.length > 0) {
       messagesEndRef.current?.scrollIntoView({ behavior: "instant" });
@@ -49,24 +62,26 @@ export default function ChatInterface() {
     addMessage({ role: "assistant", content: "" });
     setIsStreaming(true);
 
-    // Get previous history for context (from saved agent, excluding current conversation)
+    // Get previous history for context
     let previousHistory: { role: string; content: string }[] = [];
     if (currentAgentId) {
       const savedAgent = savedAgents.find((a) => a.id === currentAgentId);
       if (savedAgent?.chatHistory && savedAgent.chatHistory.length > 0) {
-        // If this is a continued session, the saved history IS the current messages
-        // Only send "previous" history if there's history beyond the current session
-        // We'll send the full history as context - the API will handle truncation
         previousHistory = [];
       }
     }
+
+    // Determine provider from selected model
+    const modelInfo = AI_MODELS.find((m) => m.id === selectedModel);
+    const provider = modelInfo?.provider || "groq";
+    const providerKey = apiKeys[provider];
 
     try {
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
       };
-      if (apiKey) {
-        headers["x-openai-api-key"] = apiKey;
+      if (providerKey) {
+        headers[`x-${provider}-api-key`] = providerKey;
       }
 
       const res = await fetch("/api/chat", {
@@ -77,7 +92,7 @@ export default function ChatInterface() {
           skillSlugs: selectedSkills.map((s) => s.slug),
           agentName: agentName || undefined,
           previousHistory: previousHistory.length > 0 ? previousHistory : undefined,
-          model,
+          model: selectedModel,
         }),
       });
 
@@ -204,23 +219,28 @@ export default function ChatInterface() {
 
       {/* Input */}
       <div className="border-t border-[var(--border)] p-4">
-        <div className="mx-auto flex max-w-3xl items-end gap-2">
-          <textarea
-            ref={textareaRef}
-            value={input}
-            onChange={handleTextareaInput}
-            onKeyDown={handleKeyDown}
-            placeholder={messages.length > 0 ? "Continue the conversation..." : "Type your message..."}
-            rows={1}
-            className="flex-1 resize-none rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
-          />
-          <button
-            onClick={sendMessage}
-            disabled={isStreaming || !input.trim()}
-            className="rounded-xl bg-[var(--accent)] px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-[var(--accent-hover)] disabled:opacity-50"
-          >
-            {isStreaming ? "..." : "Send"}
-          </button>
+        <div className="mx-auto max-w-3xl">
+          <div className="mb-2 flex items-center justify-between">
+            <ModelSelector />
+          </div>
+          <div className="flex items-end gap-2">
+            <textarea
+              ref={textareaRef}
+              value={input}
+              onChange={handleTextareaInput}
+              onKeyDown={handleKeyDown}
+              placeholder={messages.length > 0 ? "Continue the conversation..." : "Type your message..."}
+              rows={1}
+              className="flex-1 resize-none rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
+            />
+            <button
+              onClick={sendMessage}
+              disabled={isStreaming || !input.trim()}
+              className="rounded-xl bg-[var(--accent)] px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-[var(--accent-hover)] disabled:opacity-50"
+            >
+              {isStreaming ? "..." : "Send"}
+            </button>
+          </div>
         </div>
       </div>
     </div>

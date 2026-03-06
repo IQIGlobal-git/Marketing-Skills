@@ -1,3 +1,10 @@
+/**
+ * Agent Builder page — Review selected skills, name the agent, and start chatting.
+ *
+ * Shows the list of selected skills with remove buttons, a name input,
+ * and action buttons (chat, save, add more, clear). Redirects to /skills
+ * if no skills are selected.
+ */
 "use client";
 
 import { useState } from "react";

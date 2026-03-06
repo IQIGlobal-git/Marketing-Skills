@@ -1,54 +1,53 @@
+/**
+ * Settings page — Manage API keys for all supported AI providers.
+ *
+ * Displays a key input + validation for each provider (Groq, OpenAI, Anthropic, Gemini).
+ * Keys are stored in localStorage per provider and never sent to our servers.
+ * Each key can be independently validated with the /api/check-key endpoint.
+ */
 "use client";
 
 import { useState } from "react";
 import { useAgent } from "@/lib/agent-context";
+import { AIProvider, PROVIDER_INFO } from "@/lib/types";
 import ApiKeyInput from "@/components/ApiKeyInput";
 
-const AVAILABLE_MODELS = [
-  { id: "gpt-4o", label: "GPT-4o", desc: "Latest flagship model — fast and capable" },
-  { id: "gpt-4o-mini", label: "GPT-4o Mini", desc: "Affordable small model for lightweight tasks" },
-  { id: "gpt-4-turbo", label: "GPT-4 Turbo", desc: "High-intelligence model, slightly older" },
-  { id: "gpt-3.5-turbo", label: "GPT-3.5 Turbo", desc: "Fast and inexpensive for simple tasks" },
-];
+/** All providers displayed in the settings page */
+const PROVIDERS: AIProvider[] = ["groq", "openai", "anthropic", "gemini"];
 
 export default function SettingsPage() {
-  const { apiKey, model, setModel } = useAgent();
-  const [checking, setChecking] = useState(false);
-  const [keyStatus, setKeyStatus] = useState<"untested" | "valid" | "invalid">("untested");
-  const [statusMessage, setStatusMessage] = useState("");
+  const { apiKeys } = useAgent();
+  const [checking, setChecking] = useState<AIProvider | null>(null);
+  const [keyStatuses, setKeyStatuses] = useState<Record<string, { status: "untested" | "valid" | "invalid"; message: string }>>({});
 
-  const checkKey = async () => {
-    const keyToCheck = apiKey;
-    if (!keyToCheck) {
-      setKeyStatus("invalid");
-      setStatusMessage("No API key saved. Enter a key above first.");
+  /** Validate an API key by calling the server-side check endpoint */
+  const checkKey = async (provider: AIProvider) => {
+    const key = apiKeys[provider];
+    if (!key) {
+      setKeyStatuses((prev) => ({ ...prev, [provider]: { status: "invalid", message: "No API key saved. Enter a key above first." } }));
       return;
     }
 
-    setChecking(true);
-    setKeyStatus("untested");
-    setStatusMessage("");
+    setChecking(provider);
+    setKeyStatuses((prev) => ({ ...prev, [provider]: { status: "untested", message: "" } }));
 
     try {
       const res = await fetch("/api/check-key", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ apiKey: keyToCheck }),
+        body: JSON.stringify({ apiKey: key, provider }),
       });
       const data = await res.json();
 
       if (data.valid) {
-        setKeyStatus("valid");
-        setStatusMessage("Key is valid and working.");
+        setKeyStatuses((prev) => ({ ...prev, [provider]: { status: "valid", message: "Key is valid and working." } }));
       } else {
-        setKeyStatus("invalid");
-        setStatusMessage(data.error || "Key is invalid.");
+        setKeyStatuses((prev) => ({ ...prev, [provider]: { status: "invalid", message: data.error || "Key is invalid." } }));
       }
     } catch {
-      setKeyStatus("invalid");
-      setStatusMessage("Failed to validate key. Check your connection.");
+      setKeyStatuses((prev) => ({ ...prev, [provider]: { status: "invalid", message: "Failed to validate key. Check your connection." } }));
     } finally {
-      setChecking(false);
+      setChecking(null);
     }
   };
 
@@ -56,134 +55,83 @@ export default function SettingsPage() {
     <main className="mx-auto max-w-2xl px-4 py-8">
       <h1 className="mb-2 text-2xl font-bold text-[var(--foreground)]">Settings</h1>
       <p className="mb-8 text-sm text-[var(--muted)]">
-        Manage your API keys, model preferences, and settings.
+        Manage your API keys for different AI providers. Keys are stored locally in your browser.
       </p>
 
-      {/* API Key Section */}
-      <section className="mb-8">
-        <h2 className="mb-4 text-lg font-semibold text-[var(--foreground)]">API Key</h2>
+      {/* API Key Sections — one per provider */}
+      {PROVIDERS.map((provider) => {
+        const info = PROVIDER_INFO[provider];
+        const keyStatus = keyStatuses[provider];
+        const key = apiKeys[provider];
 
-        <div className="mb-4 rounded-lg border border-[var(--border)] bg-[var(--accent-subtle)] p-3 text-xs text-[var(--accent-text)]">
-          A default API key is configured on the server. Your personal key (if provided) will override it, giving you your own usage quota.
-        </div>
+        return (
+          <section key={provider} className="mb-8">
+            <h2 className="mb-4 text-lg font-semibold text-[var(--foreground)]">{info.name}</h2>
 
-        <ApiKeyInput />
+            {/* Key input component (provider-aware) */}
+            <ApiKeyInput provider={provider} />
 
-        {/* Validate & Usage */}
-        <div className="mt-4 flex items-center gap-3">
-          <button
-            onClick={checkKey}
-            disabled={checking}
-            className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm text-[var(--foreground)] transition-colors hover:bg-[var(--surface)] disabled:opacity-50"
-          >
-            {checking ? "Checking..." : "Validate Key"}
-          </button>
-
-          {keyStatus !== "untested" && (
-            <span
-              className={`text-xs font-medium ${
-                keyStatus === "valid" ? "text-green-400" : "text-red-400"
-              }`}
-            >
-              {keyStatus === "valid" ? "\u2713" : "\u2717"} {statusMessage}
-            </span>
-          )}
-        </div>
-
-        {/* Current key status */}
-        <div className="mt-4 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
-          <h3 className="mb-2 text-sm font-medium text-[var(--foreground)]">Current Key Status</h3>
-          <div className="space-y-2 text-xs text-[var(--muted)]">
-            <div className="flex justify-between">
-              <span>Personal key</span>
-              <span className={apiKey ? "text-green-400" : "text-[var(--muted)]"}>
-                {apiKey ? `sk-...${apiKey.slice(-8)}` : "Not set (using server default)"}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span>Server default</span>
-              <span className="text-green-400">Available</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Model Selection */}
-      <section className="mb-8">
-        <h2 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Model</h2>
-        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
-          <p className="mb-3 text-sm text-[var(--muted)]">
-            Choose the OpenAI model used for chat responses.
-          </p>
-          <div className="space-y-2">
-            {AVAILABLE_MODELS.map((m) => (
-              <label
-                key={m.id}
-                className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors ${
-                  model === m.id
-                    ? "border-[var(--accent)] bg-[var(--accent-subtle)]"
-                    : "border-[var(--border)] hover:border-[var(--muted)]"
-                }`}
+            {/* Validate button */}
+            <div className="mt-4 flex items-center gap-3">
+              <button
+                onClick={() => checkKey(provider)}
+                disabled={checking === provider}
+                className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm text-[var(--foreground)] transition-colors hover:bg-[var(--surface)] disabled:opacity-50"
               >
-                <input
-                  type="radio"
-                  name="model"
-                  value={m.id}
-                  checked={model === m.id}
-                  onChange={() => setModel(m.id)}
-                  className="accent-[var(--accent)]"
-                />
-                <div>
-                  <div className="text-sm font-medium text-[var(--foreground)]">{m.label}</div>
-                  <div className="text-xs text-[var(--muted)]">{m.desc}</div>
-                </div>
-              </label>
-            ))}
-          </div>
-        </div>
-      </section>
+                {checking === provider ? "Checking..." : "Validate Key"}
+              </button>
 
-      {/* Usage & Dashboard */}
-      <section className="mb-8">
-        <h2 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Usage & Billing</h2>
-        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
-          <p className="mb-3 text-sm text-[var(--muted)]">
-            View your API usage, rate limits, and billing details on the OpenAI dashboard.
-          </p>
-          <a
-            href="https://platform.openai.com/usage"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--accent-hover)]"
-          >
-            Open OpenAI Dashboard
-            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-            </svg>
-          </a>
-        </div>
-      </section>
+              {keyStatus && keyStatus.status !== "untested" && (
+                <span
+                  className={`text-xs font-medium ${
+                    keyStatus.status === "valid" ? "text-green-400" : "text-red-400"
+                  }`}
+                >
+                  {keyStatus.status === "valid" ? "\u2713" : "\u2717"} {keyStatus.message}
+                </span>
+              )}
+            </div>
 
-      {/* Info */}
+            {/* Key status display */}
+            <div className="mt-4 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
+              <div className="flex justify-between text-xs text-[var(--muted)]">
+                <span>Key status</span>
+                <span className={key ? "text-green-400" : "text-[var(--muted)]"}>
+                  {key ? `${info.keyPrefix}...${key.slice(-6)}` : "Not set"}
+                </span>
+              </div>
+            </div>
+
+            {/* Dashboard link */}
+            <div className="mt-3">
+              <a
+                href={info.dashboardUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs text-[var(--accent)] hover:underline"
+              >
+                Open {info.name} Dashboard
+                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+            </div>
+          </section>
+        );
+      })}
+
+      {/* Info Section */}
       <section>
         <h2 className="mb-4 text-lg font-semibold text-[var(--foreground)]">About API Keys</h2>
         <div className="space-y-3 text-sm text-[var(--muted)]">
           <p>
-            This app uses the <strong className="text-[var(--foreground)]">OpenAI API</strong> to power chat responses. You can choose from multiple models in the Model section above.
+            This app supports <strong className="text-[var(--foreground)]">4 AI providers</strong>: Groq (Llama), OpenAI (GPT), Anthropic (Claude), and Google Gemini. Select your preferred model in the chat interface.
           </p>
           <p>
-            Your personal API key is stored locally in your browser and never sent to our servers. It is only sent directly to OpenAI when making chat requests.
+            Your API keys are stored locally in your browser and never sent to our servers. They are only sent directly to the respective provider when making chat requests.
           </p>
           <p>
-            Get an API key at{" "}
-            <a
-              href="https://platform.openai.com/api-keys"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[var(--accent)] hover:underline"
-            >
-              platform.openai.com
-            </a>.
+            Groq and Gemini offer free tiers. OpenAI and Anthropic require paid API access.
           </p>
         </div>
       </section>

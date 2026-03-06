@@ -1,3 +1,10 @@
+/**
+ * SkillBrowser — Fetches and displays all marketing skills in a searchable grid.
+ *
+ * Skills are fetched from /api/skills on mount, then organized by category.
+ * Users can search by name/description and filter by category.
+ * A floating action bar appears when skills are selected, linking to the agent builder.
+ */
 "use client";
 
 import { useState, useEffect } from "react";

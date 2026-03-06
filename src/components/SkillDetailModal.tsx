@@ -1,3 +1,10 @@
+/**
+ * SkillDetailModal — Full-screen modal showing a skill's complete details.
+ *
+ * Displays skill name, category, description, and the full SKILL.md content
+ * rendered as markdown. Includes add/remove button for agent skill selection.
+ * Closes on backdrop click or close button.
+ */
 "use client";
 
 import ReactMarkdown from "react-markdown";
