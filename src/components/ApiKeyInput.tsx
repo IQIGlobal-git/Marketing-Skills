@@ -6,7 +6,7 @@
  * - Compact mode: Returns null if the key is already set (used in chat banner)
  *
  * Props:
- *   - provider: which provider's key to manage (defaults to "groq")
+ *   - provider: which provider's key to manage (defaults to "gemini")
  *   - compact: if true, hides when key is already set
  */
 "use client";
@@ -17,12 +17,12 @@ import { AIProvider, PROVIDER_INFO } from "@/lib/types";
 
 interface ApiKeyInputProps {
   compact?: boolean;
-  provider?: AIProvider;
+  provider?: AIProvider | "fal";
 }
 
 export default function ApiKeyInput({ compact = false, provider = "gemini" }: ApiKeyInputProps) {
   const { apiKeys, setProviderKey } = useAgent();
-  const currentKey = apiKeys[provider];
+  const currentKey = apiKeys[provider as keyof typeof apiKeys];
   const info = PROVIDER_INFO[provider];
 
   const [value, setValue] = useState(currentKey);

@@ -1,7 +1,8 @@
 /**
- * ModelSelector — Dropdown to pick the Gemini model for chat.
+ * ModelSelector — Dropdown to pick the AI model for chat.
  *
- * Shows available Gemini models (2.0 Flash, 2.0 Flash Lite).
+ * Shows all available models grouped by provider (Gemini, Groq, OpenAI, Anthropic).
+ * Warns when a provider has no API key set.
  * Selection is persisted to localStorage via the agent context.
  */
 "use client";

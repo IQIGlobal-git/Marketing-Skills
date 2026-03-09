@@ -2,8 +2,9 @@
  * ChatInterface — Main chat UI for interacting with the marketing agent.
  *
  * Features:
- * - Real-time streaming responses from the selected AI model
- * - Model selector dropdown (Gemini 2.0 Flash, Flash Lite)
+ * - Real-time streaming responses from multiple AI providers
+ * - Model selector dropdown (Gemini, Groq, OpenAI, Anthropic)
+ * - Image generation via fal.ai (FLUX models)
  * - Auto-scrolling message list with markdown rendering
  * - Auto-resizing textarea with Enter-to-send (Shift+Enter for newline)
  * - Conversation memory (previous history passed to API for context)
@@ -14,7 +15,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useAgent } from "@/lib/agent-context";
-import { AI_MODELS } from "@/lib/types";
+import { AI_MODELS, FAL_MODELS } from "@/lib/types";
 import MessageBubble from "./MessageBubble";
 import ApiKeyInput from "./ApiKeyInput";
 import ModelSelector from "./ModelSelector";
@@ -34,10 +35,14 @@ export default function ChatInterface() {
   } = useAgent();
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [showKeyInput, setShowKeyInput] = useState(false);
+  const [showImagePrompt, setShowImagePrompt] = useState(false);
+  const [imagePrompt, setImagePrompt] = useState("");
+  const [selectedFalModel, setSelectedFalModel] = useState<string>(FAL_MODELS[0].id);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const hasScrolled = useRef(false); // Track first scroll to avoid smooth animation on load
+  const hasScrolled = useRef(false);
 
   useEffect(() => {
     if (!hasScrolled.current && messages.length > 0) {
@@ -62,7 +67,6 @@ export default function ChatInterface() {
     addMessage({ role: "assistant", content: "" });
     setIsStreaming(true);
 
-    // Get previous history for context
     let previousHistory: { role: string; content: string }[] = [];
     if (currentAgentId) {
       const savedAgent = savedAgents.find((a) => a.id === currentAgentId);
@@ -71,7 +75,6 @@ export default function ChatInterface() {
       }
     }
 
-    // Determine provider from selected model
     const modelInfo = AI_MODELS.find((m) => m.id === selectedModel);
     const provider = modelInfo?.provider || "gemini";
     const providerKey = apiKeys[provider];
@@ -121,6 +124,56 @@ export default function ChatInterface() {
       );
     } finally {
       setIsStreaming(false);
+    }
+  };
+
+  const generateImage = async () => {
+    const prompt = imagePrompt.trim();
+    if (!prompt || isGeneratingImage) return;
+
+    const falKey = apiKeys.fal;
+    if (!falKey) {
+      setShowKeyInput(true);
+      return;
+    }
+
+    setIsGeneratingImage(true);
+    setShowImagePrompt(false);
+    setImagePrompt("");
+
+    // Add user message showing what was requested
+    addMessage({ role: "user", content: `Generate image: ${prompt}` });
+    addMessage({ role: "assistant", content: "Generating image..." });
+
+    try {
+      const res = await fetch("/api/generate-image", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-fal-api-key": falKey,
+        },
+        body: JSON.stringify({
+          prompt,
+          model: selectedFalModel,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Image generation failed");
+      }
+
+      const data = await res.json();
+      // Update the last message with the image
+      updateLastMessage("");
+      // We need to set imageUrl on the last message — replace it
+      addMessage({ role: "assistant", content: prompt, imageUrl: data.imageUrl });
+    } catch (error) {
+      updateLastMessage(
+        `Error: ${error instanceof Error ? error.message : "Image generation failed"}`
+      );
+    } finally {
+      setIsGeneratingImage(false);
     }
   };
 
@@ -217,11 +270,72 @@ export default function ChatInterface() {
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Image generation prompt panel */}
+      {showImagePrompt && (
+        <div className="border-t border-[var(--border)] bg-[var(--surface)] p-4">
+          <div className="mx-auto max-w-3xl">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-xs font-medium text-[var(--foreground)]">Generate Image</span>
+              <div className="flex items-center gap-2">
+                <select
+                  value={selectedFalModel}
+                  onChange={(e) => setSelectedFalModel(e.target.value)}
+                  className="rounded border border-[var(--border)] bg-[var(--background)] px-2 py-1 text-[10px] text-[var(--foreground)] outline-none"
+                >
+                  {FAL_MODELS.map((m) => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => setShowImagePrompt(false)}
+                  className="text-xs text-[var(--muted)] hover:text-[var(--foreground)]"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+            <div className="flex items-end gap-2">
+              <input
+                value={imagePrompt}
+                onChange={(e) => setImagePrompt(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") generateImage(); }}
+                placeholder="Describe the marketing image you want to generate..."
+                className="flex-1 rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-3 text-sm text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
+                autoFocus
+              />
+              <button
+                onClick={generateImage}
+                disabled={isGeneratingImage || !imagePrompt.trim()}
+                className="rounded-xl bg-purple-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-purple-700 disabled:opacity-50"
+              >
+                {isGeneratingImage ? "..." : "Generate"}
+              </button>
+            </div>
+            {!apiKeys.fal && (
+              <p className="mt-2 text-[10px] text-amber-400">
+                Add a fal.ai API key in Settings to generate images.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Input */}
       <div className="border-t border-[var(--border)] p-4">
         <div className="mx-auto max-w-3xl">
           <div className="mb-2 flex items-center justify-between">
             <ModelSelector />
+            <button
+              onClick={() => setShowImagePrompt(!showImagePrompt)}
+              disabled={isStreaming || isGeneratingImage}
+              className="flex items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 py-1 text-[11px] text-[var(--muted)] transition-colors hover:bg-[var(--surface)] hover:text-[var(--foreground)] disabled:opacity-50"
+              title="Generate an image with fal.ai"
+            >
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
+              </svg>
+              <span>Image</span>
+            </button>
           </div>
           <div className="flex items-end gap-2">
             <textarea

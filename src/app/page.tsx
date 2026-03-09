@@ -26,7 +26,7 @@ export default function Home() {
         </h1>
         <p className="mx-auto mb-8 max-w-2xl text-lg text-[var(--muted)]">
           Browse 32+ marketing skills, build a custom AI agent with the
-          expertise you need, and chat with it instantly. Powered by Google Gemini.
+          expertise you need, and chat with it instantly. Powered by Gemini, Groq, OpenAI, and Anthropic.
         </p>
         <Link
           href="/skills"

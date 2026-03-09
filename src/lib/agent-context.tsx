@@ -4,7 +4,7 @@
  * AgentProvider wraps the entire app and manages:
  * - Selected skills and agent configuration
  * - Chat messages with auto-persistence to localStorage
- * - Google Gemini API key
+ * - API keys for all providers (Gemini, Groq, OpenAI, Anthropic, fal.ai)
  * - Selected AI model
  * - Theme preferences
  * - Saved agents (create, update, delete, load)
@@ -31,9 +31,9 @@ interface AgentContextType {
   // Agent identity
   agentName: string;
   setAgentName: (name: string) => void;
-  // Gemini API key (stored in localStorage)
+  // API keys (stored in localStorage, one per provider)
   apiKeys: ApiKeys;
-  setProviderKey: (provider: AIProvider, key: string) => void;
+  setProviderKey: (provider: AIProvider | "fal", key: string) => void;
   // Model selection
   selectedModel: string;
   setSelectedModel: (model: string) => void;
@@ -50,7 +50,7 @@ interface AgentContextType {
 
 const AgentContext = createContext<AgentContextType | null>(null);
 
-const DEFAULT_KEYS: ApiKeys = { gemini: "" };
+const DEFAULT_KEYS: ApiKeys = { gemini: "", groq: "", openai: "", anthropic: "", fal: "" };
 
 /** Safely read a JSON value from localStorage with a fallback */
 function readLocal<T>(key: string, fallback: T): T {
@@ -81,9 +81,11 @@ export function AgentProvider({ children }: { children: ReactNode }) {
     readLocal<string | null>("current-agent-id", null)
   );
 
-  // Gemini API key from localStorage
+  // API keys from localStorage (with migration from old single-key format)
   const [apiKeys, setApiKeys] = useState<ApiKeys>(() => {
-    return readLocal<ApiKeys>("api-keys", DEFAULT_KEYS);
+    const stored = readLocal<ApiKeys>("api-keys", DEFAULT_KEYS);
+    // Ensure all keys exist (in case new providers were added)
+    return { ...DEFAULT_KEYS, ...stored };
   });
 
   // Currently selected AI model (defaults to Gemini 2.0 Flash)
@@ -114,12 +116,11 @@ export function AgentProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (messages.length === 0) return;
     const lastMsg = messages[messages.length - 1];
-    if (lastMsg.content === "") return; // mid-stream placeholder, don't persist yet
+    if (lastMsg.content === "" && !lastMsg.imageUrl) return;
 
     const key = currentAgentId ? `chat-history-${currentAgentId}` : "chat-history-unsaved";
     writeLocal(key, messages);
 
-    // Also sync to the savedAgents list if this is a saved agent
     if (currentAgentId) {
       setSavedAgents((prev) => {
         const idx = prev.findIndex((a) => a.id === currentAgentId);
@@ -144,7 +145,7 @@ export function AgentProvider({ children }: { children: ReactNode }) {
   }, [theme]);
 
   /** Set API key for a specific provider and persist to localStorage */
-  const setProviderKey = (provider: AIProvider, key: string) => {
+  const setProviderKey = (provider: AIProvider | "fal", key: string) => {
     setApiKeys((prev) => {
       const updated = { ...prev, [provider]: key };
       writeLocal("api-keys", updated);
@@ -163,7 +164,7 @@ export function AgentProvider({ children }: { children: ReactNode }) {
   // --- Skill management ---
   const addSkill = (skill: Skill) => {
     setSelectedSkills((prev) => {
-      if (prev.some((s) => s.slug === skill.slug)) return prev; // prevent duplicates
+      if (prev.some((s) => s.slug === skill.slug)) return prev;
       return [...prev, skill];
     });
   };
@@ -185,7 +186,6 @@ export function AgentProvider({ children }: { children: ReactNode }) {
     setMessages((prev) => [...prev, msg]);
   }, []);
 
-  /** Update the last message content (used during streaming to accumulate chunks) */
   const updateLastMessage = useCallback((content: string) => {
     setMessages((prev) => {
       const updated = [...prev];
@@ -217,11 +217,9 @@ export function AgentProvider({ children }: { children: ReactNode }) {
 
   // --- Saved agent management ---
 
-  /** Save or update the current agent. Returns the agent ID or null if no skills selected. */
   const saveCurrentAgent = (): string | null => {
     if (selectedSkills.length === 0) return null;
 
-    // Update existing saved agent
     if (currentAgentId) {
       setSavedAgents((prev) => {
         const idx = prev.findIndex((a) => a.id === currentAgentId);
@@ -239,7 +237,6 @@ export function AgentProvider({ children }: { children: ReactNode }) {
       return currentAgentId;
     }
 
-    // Create new saved agent
     const agent: SavedAgent = {
       id: crypto.randomUUID(),
       name: agentName.trim() || "Untitled Agent",
@@ -251,7 +248,7 @@ export function AgentProvider({ children }: { children: ReactNode }) {
     setSavedAgents(updated);
     writeLocal("saved-agents", updated);
     setCurrentAgentId(agent.id);
-    writeLocal("chat-history-unsaved", []); // Clean up unsaved session
+    writeLocal("chat-history-unsaved", []);
     return agent.id;
   };
 
@@ -263,7 +260,6 @@ export function AgentProvider({ children }: { children: ReactNode }) {
     if (currentAgentId === id) setCurrentAgentId(null);
   };
 
-  /** Load a saved agent into the current session (skills, name, chat history) */
   const loadAgent = (agent: SavedAgent) => {
     setSelectedSkills(agent.skills);
     setAgentName(agent.name);
